@@ -4,7 +4,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
-describe('AppController (e2e)', () => {
+describe('FoodsController (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
@@ -13,14 +13,18 @@ describe('AppController (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api');
     await app.init();
   });
 
-  it('/ (GET)', () => {
+  it('/api/foods (GET)', () => {
     return request(app.getHttpServer())
-      .get('/')
+      .get('/api/foods')
       .expect(200)
-      .expect('Hello World!');
+      .then((res) => {
+        expect(res.body).toHaveProperty('foods');
+        expect(Array.isArray(res.body.foods)).toBe(true);
+      });
   });
 
   afterEach(async () => {

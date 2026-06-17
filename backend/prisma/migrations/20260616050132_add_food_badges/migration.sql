@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "Food" ADD COLUMN     "isBestseller" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "isNew" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "isTrending" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "isVeg" BOOLEAN NOT NULL DEFAULT false;
