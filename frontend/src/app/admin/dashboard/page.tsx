@@ -155,7 +155,7 @@ export default function AdminDashboardPage() {
                 <p className="text-xs text-muted-foreground">{kpi.desc}</p>
               </div>
               <div className={`p-3 rounded-xl border flex items-center justify-center w-11 h-11 ${kpi.color}`}>
-                {typeof kpi.icon === 'function' ? kpi.icon() : <kpi.icon className="w-5 h-5" />}
+                <kpi.icon className="w-5 h-5" />
               </div>
             </div>
           ))}
