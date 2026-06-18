@@ -35,7 +35,15 @@ export default function LoginPage() {
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const code = searchParams.get('code');
-    if (code) {
+    const errorParam = searchParams.get('error');
+
+    if (errorParam === 'google_oauth_not_configured') {
+      setErrorMessage('Google OAuth is not configured on the server. Please verify your environment settings.');
+    } else if (code) {
+      if (code === 'mock-auth-code') {
+        setErrorMessage('Mock authentication code was bypassed as it is not supported in production.');
+        return;
+      }
       setProcessingCallback(true);
       googleLoginCallback(code)
         .catch((err: any) => {
@@ -66,7 +74,7 @@ export default function LoginPage() {
   const handleGoogleLogin = () => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     if (!clientId || clientId === 'mock_client_id' || clientId === '') {
-      router.push('/login?code=mock-auth-code');
+      setErrorMessage('Google OAuth client ID is not configured on this server.');
     } else {
       const redirectUri = encodeURIComponent(`${window.location.origin}/login`);
       const scope = encodeURIComponent('openid profile email');

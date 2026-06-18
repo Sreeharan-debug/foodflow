@@ -8,30 +8,36 @@ export declare class UsersService {
         id: string;
         email: string;
         name: string;
+        firstName: string | null;
         role: import(".prisma/client").$Enums.Role;
         status: import(".prisma/client").$Enums.UserStatus;
         provider: string;
         profileImage: string | null;
+        mustChangePassword: boolean;
         createdAt: Date;
     }[]>;
     findOne(id: string): Promise<{
         id: string;
         email: string;
         name: string;
+        firstName: string | null;
         role: import(".prisma/client").$Enums.Role;
         status: import(".prisma/client").$Enums.UserStatus;
         provider: string;
         profileImage: string | null;
+        mustChangePassword: boolean;
         createdAt: Date;
     }>;
     update(id: string, updateUserDto: UpdateUserDto, performedBy: string): Promise<{
         id: string;
         email: string;
         name: string;
+        firstName: string | null;
         role: import(".prisma/client").$Enums.Role;
         status: import(".prisma/client").$Enums.UserStatus;
         provider: string;
         profileImage: string | null;
+        mustChangePassword: boolean;
     }>;
     remove(id: string): Promise<{
         message: string;

@@ -14,6 +14,9 @@ export declare class FoodsController {
                 updatedAt: Date;
                 description: string | null;
             };
+            _count: {
+                reviews: number;
+            };
         } & {
             id: string;
             name: string;
@@ -73,6 +76,9 @@ export declare class FoodsController {
             updatedAt: Date;
             description: string | null;
         };
+        _count: {
+            reviews: number;
+        };
     } & {
         id: string;
         name: string;
@@ -100,6 +106,9 @@ export declare class FoodsController {
             updatedAt: Date;
             description: string | null;
         };
+        _count: {
+            reviews: number;
+        };
     } & {
         id: string;
         name: string;
@@ -126,6 +135,9 @@ export declare class FoodsController {
             createdAt: Date;
             updatedAt: Date;
             description: string | null;
+        };
+        _count: {
+            reviews: number;
         };
     } & {
         id: string;

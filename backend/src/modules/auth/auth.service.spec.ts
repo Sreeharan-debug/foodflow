@@ -182,6 +182,41 @@ describe('AuthService', () => {
       redirectUri: 'http://localhost:3000/login',
     };
 
+    let originalFetch: any;
+
+    beforeEach(() => {
+      originalFetch = global.fetch;
+      process.env.GOOGLE_CLIENT_ID = 'test-client-id';
+      process.env.GOOGLE_CLIENT_SECRET = 'test-client-secret';
+
+      global.fetch = jest.fn((url: string) => {
+        if (url.includes('oauth2.googleapis.com/token')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ access_token: 'test-access-token' }),
+          } as any);
+        }
+        if (url.includes('googleapis.com/oauth2/v3/userinfo')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              email: 'rahul.nair@gmail.com',
+              name: 'Rahul Nair',
+              given_name: 'Rahul',
+              picture: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+            }),
+          } as any);
+        }
+        return Promise.reject(new Error('Unknown url'));
+      }) as any;
+    });
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+      delete process.env.GOOGLE_CLIENT_ID;
+      delete process.env.GOOGLE_CLIENT_SECRET;
+    });
+
     it('should create a new user and cart, send welcome email, and generate tokens', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
       
@@ -189,7 +224,8 @@ describe('AuthService', () => {
         id: 'new_google_user_id',
         email: 'rahul.nair@gmail.com',
         name: 'Rahul Nair',
-        provider: 'GOOGLE',
+        firstName: 'Rahul',
+        provider: 'google',
         profileImage: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
         welcomeEmailSent: true,
         role: Role.CUSTOMER,
@@ -208,7 +244,8 @@ describe('AuthService', () => {
         data: {
           email: 'rahul.nair@gmail.com',
           name: 'Rahul Nair',
-          provider: 'GOOGLE',
+          firstName: 'Rahul',
+          provider: 'google',
           profileImage: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
           welcomeEmailSent: true,
           status: UserStatus.ACTIVE,
@@ -218,7 +255,7 @@ describe('AuthService', () => {
       expect(mockPrismaService.cart.create).toHaveBeenCalledWith({
         data: { userId: 'new_google_user_id' },
       });
-      expect(mockEmailService.sendWelcomeEmail).toHaveBeenCalledWith('Rahul Nair', 'rahul.nair@gmail.com');
+      expect(mockEmailService.sendWelcomeEmail).toHaveBeenCalledWith('Rahul', 'rahul.nair@gmail.com');
       expect(result.user.isNewUser).toBe(true);
       expect(result.tokens.accessToken).toBe('token_val');
     });
@@ -228,6 +265,7 @@ describe('AuthService', () => {
         id: 'existing_user_id',
         email: 'rahul.nair@gmail.com',
         name: 'Rahul Nair',
+        firstName: 'Rahul',
         provider: 'credentials',
         profileImage: null,
         welcomeEmailSent: false,
@@ -239,7 +277,7 @@ describe('AuthService', () => {
       
       const updatedUser = {
         ...existingUser,
-        provider: 'GOOGLE',
+        provider: 'google',
         profileImage: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
       };
       
@@ -251,7 +289,7 @@ describe('AuthService', () => {
       expect(mockPrismaService.user.update).toHaveBeenCalledWith({
         where: { id: 'existing_user_id' },
         data: {
-          provider: 'GOOGLE',
+          provider: 'google',
           profileImage: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
         },
       });
@@ -265,7 +303,8 @@ describe('AuthService', () => {
         id: 'existing_google_user_id',
         email: 'rahul.nair@gmail.com',
         name: 'Rahul Nair',
-        provider: 'GOOGLE',
+        firstName: 'Rahul',
+        provider: 'google',
         profileImage: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
         welcomeEmailSent: true,
         role: Role.CUSTOMER,
@@ -287,7 +326,8 @@ describe('AuthService', () => {
         id: 'blocked_user_id',
         email: 'rahul.nair@gmail.com',
         name: 'Rahul Nair',
-        provider: 'GOOGLE',
+        firstName: 'Rahul',
+        provider: 'google',
         profileImage: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
         status: UserStatus.BLOCKED,
         role: Role.CUSTOMER,

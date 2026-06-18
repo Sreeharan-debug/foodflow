@@ -69,7 +69,12 @@ let FoodsService = class FoodsService {
                 orderBy,
                 skip,
                 take: limit,
-                include: { category: true },
+                include: {
+                    category: true,
+                    _count: {
+                        select: { reviews: true },
+                    },
+                },
             }),
             this.prisma.food.count({ where }),
         ]);
@@ -91,14 +96,24 @@ let FoodsService = class FoodsService {
     async findFeatured() {
         return this.prisma.food.findMany({
             where: { featured: true, isAvailable: true },
-            include: { category: true },
+            include: {
+                category: true,
+                _count: {
+                    select: { reviews: true },
+                },
+            },
             orderBy: { rating: 'desc' },
         });
     }
     async findPopular() {
         return this.prisma.food.findMany({
             where: { rating: { gte: 4.7 }, isAvailable: true },
-            include: { category: true },
+            include: {
+                category: true,
+                _count: {
+                    select: { reviews: true },
+                },
+            },
             orderBy: { rating: 'desc' },
             take: 6,
         });
@@ -106,7 +121,12 @@ let FoodsService = class FoodsService {
     async findOne(id) {
         const food = await this.prisma.food.findUnique({
             where: { id },
-            include: { category: true },
+            include: {
+                category: true,
+                _count: {
+                    select: { reviews: true },
+                },
+            },
         });
         if (!food) {
             throw new common_1.NotFoundException(`Food item with ID ${id} not found`);

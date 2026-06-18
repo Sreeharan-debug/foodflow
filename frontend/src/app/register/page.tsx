@@ -49,7 +49,7 @@ export default function RegisterPage() {
   const handleGoogleLogin = () => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     if (!clientId || clientId === 'mock_client_id' || clientId === '') {
-      router.push('/login?code=mock-auth-code');
+      setErrorMessage('Google OAuth client ID is not configured on this server.');
     } else {
       const redirectUri = encodeURIComponent(`${window.location.origin}/login`);
       const scope = encodeURIComponent('openid profile email');

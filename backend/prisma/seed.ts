@@ -21,7 +21,7 @@ async function main() {
 
   // 2. Create Users (1 Admin + 10 Customers)
   const saltRounds = 10;
-  const adminPasswordHash = await bcrypt.hash('AdminPassword123!', saltRounds);
+  const adminPasswordHash = await bcrypt.hash('Admin@123', saltRounds);
   const customerPasswordHash = await bcrypt.hash('CustomerPassword123!', saltRounds);
 
   const admin = await prisma.user.create({
@@ -31,6 +31,7 @@ async function main() {
       password: adminPasswordHash,
       role: Role.ADMIN,
       status: UserStatus.ACTIVE,
+      mustChangePassword: true,
     },
   });
 
@@ -123,7 +124,7 @@ async function main() {
     { name: 'Biryanis', description: 'Fragrant long-grain basmati rice cooked with premium spices and meat/veggies' },
     { name: 'South Indian', description: 'Crispy dosas, fluffy idlis, sambar, and fresh coconut chutneys' },
     { name: 'North Indian', description: 'Rich paneer curries, tandoori items, and butter naan flatbreads' },
-    { name: 'Chinese', description: 'Indo-Chinese hakka noodles, fried rice, and spicy manchurian' },
+    { name: 'Indo-Chinese', description: 'Indo-Chinese hakka noodles, fried rice, and spicy manchurian' },
     { name: 'Street Food', description: 'Tangy pani puris, vada pavs, pav bhajis, and chat items' },
     { name: 'Breakfast', description: 'Standard morning snacks, puttu, appam, and traditional combos' },
     { name: 'Kerala Specials', description: 'Authentic Kerala nadan beef fry, porottas, and fish curries' },
@@ -519,7 +520,7 @@ async function main() {
       isTrending: false,
       isNew: false,
       spiceLevel: 'Hot',
-      categoryId: categoriesMap['Chinese'],
+      categoryId: categoriesMap['Indo-Chinese'],
     },
     {
       name: 'Chilli Chicken Dry',
@@ -535,7 +536,7 @@ async function main() {
       isTrending: true,
       isNew: false,
       spiceLevel: 'Hot',
-      categoryId: categoriesMap['Chinese'],
+      categoryId: categoriesMap['Indo-Chinese'],
     },
     // ── Snacks ────────────────────────────────────────────────────────────────
     {
@@ -764,6 +765,56 @@ async function main() {
   }
 
   console.log('20 Sample orders in INR seeded successfully.');
+
+  // 7.5. Create Reviews
+  const reviewsData = [
+    {
+      rating: 5,
+      comment: "Absolutely outstanding Malabar biryani! The chicken is extremely tender and the rice is loaded with flavor.",
+      userEmail: "customer@foodflow.com",
+      foodName: "Malabar Chicken Biryani",
+    },
+    {
+      rating: 4,
+      comment: "Very delicious and aromatic, but a bit too spicy for my taste.",
+      userEmail: "arjun.mehta@gmail.com",
+      foodName: "Malabar Chicken Biryani",
+    },
+    {
+      rating: 5,
+      comment: "Classic Kerala taste! Highly recommend this nadan beef fry with some hot porottas.",
+      userEmail: "customer@foodflow.com",
+      foodName: "Kerala Beef Fry (Nadan)",
+    },
+    {
+      rating: 5,
+      comment: "Creamy, rich, and delicious! Goes perfectly with Butter Naan.",
+      userEmail: "priya.sharma@yahoo.com",
+      foodName: "Butter Chicken Masala",
+    },
+    {
+      rating: 3,
+      comment: "Average taste, expected a bit more creaminess.",
+      userEmail: "rahul.k@outlook.com",
+      foodName: "Butter Chicken Masala",
+    },
+  ];
+
+  for (const rev of reviewsData) {
+    const dbUser = seededCustomers.find(u => u.email === rev.userEmail);
+    const dbFood = seededFoods.find(f => f.name === rev.foodName);
+    if (dbUser && dbFood) {
+      await prisma.review.create({
+        data: {
+          rating: rev.rating,
+          comment: rev.comment,
+          userId: dbUser.id,
+          foodId: dbFood.id,
+        },
+      });
+    }
+  }
+  console.log('Sample reviews seeded successfully.');
 
   // 8. Create Audit Logs
   await prisma.auditLog.create({

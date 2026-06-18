@@ -5,11 +5,12 @@ import Link from 'next/link';
 import Navbar from '@/components/shared/navbar';
 import Footer from '@/components/shared/footer';
 import { useCart } from '@/providers/cart-provider';
+import { useAuth } from '@/providers/auth-provider';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { useRouter } from 'next/navigation';
-import { MapPin, Plus, Check, Loader2, ArrowRight, Home, Briefcase, PlusCircle, Trash2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { MapPin, Plus, Check, Loader2, ArrowRight, Home, Briefcase, PlusCircle, Trash2, CreditCard, ShieldAlert } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Address {
   id: string;
@@ -28,10 +29,15 @@ export default function CheckoutPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { cartItems, subtotal, tax, discount, total, coupon, clearCart } = useCart();
+  const { user, showToast } = useAuth();
 
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  
+  // Payments states
+  const [pendingOrder, setPendingOrder] = useState<any>(null);
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
 
   // Address Form States
   const [addressLabel, setAddressLabel] = useState('Home');
@@ -105,6 +111,17 @@ export default function CheckoutPage() {
     });
   };
 
+  // Helper to load Razorpay script dynamically
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
   // 3. Checkout placement logic
   const handlePlaceOrder = async () => {
     if (!selectedAddressId) return;
@@ -114,13 +131,72 @@ export default function CheckoutPage() {
         addressId: selectedAddressId,
         couponCode: coupon?.code || undefined,
       });
-      // Clear client cart cache
-      await clearCart();
-      // Redirect to status tracker
-      router.push(`/customer/orders/${response.data.id}`);
-    } catch (error) {
+
+      const { order, razorpayOrder } = response.data;
+      setPendingOrder(order);
+
+      // Load SDK
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        alert('Failed to load Razorpay Payment Gateway. Check your internet connection.');
+        setCheckoutLoading(false);
+        return;
+      }
+
+      const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+      if (!keyId || keyId === 'mock_key_id') {
+        alert('Razorpay key ID is not configured on the client.');
+        setCheckoutLoading(false);
+        return;
+      }
+
+      // Open options
+      const options = {
+        key: keyId,
+        amount: razorpayOrder.amount,
+        currency: razorpayOrder.currency,
+        name: 'FOODFLOW',
+        description: 'Order Payment',
+        order_id: razorpayOrder.id,
+        handler: async function (res: any) {
+          setCheckoutLoading(true);
+          setVerifyingPayment(true);
+          try {
+            await api.post('/payments/verify', {
+              razorpay_order_id: res.razorpay_order_id,
+              razorpay_payment_id: res.razorpay_payment_id,
+              razorpay_signature: res.razorpay_signature,
+            });
+            await clearCart();
+            showToast('🎉 Payment successful! Order confirmed.', 'success');
+            router.push(`/customer/orders/${order.id}`);
+          } catch (err: any) {
+            alert(err.response?.data?.message || 'Payment signature verification failed.');
+          } finally {
+            setVerifyingPayment(false);
+            setCheckoutLoading(false);
+          }
+        },
+        prefill: {
+          name: user?.name || '',
+          email: user?.email || '',
+        },
+        theme: {
+          color: '#ea580c',
+        },
+        modal: {
+          ondismiss: function () {
+            showToast('⚠️ Payment cancelled. Access orders page to complete payment.', 'info');
+            router.push(`/customer/orders/${order.id}`);
+          },
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } catch (error: any) {
       console.error('Failed to checkout:', error);
-      alert('Failed to place order. Please check item availability.');
+      alert(error.response?.data?.message || 'Failed to place order. Please try again.');
       setCheckoutLoading(false);
     }
   };
@@ -478,6 +554,19 @@ export default function CheckoutPage() {
           </div>
         </div>
       </main>
+
+
+
+      {/* Verifying Payment Fullscreen Loader */}
+      <AnimatePresence>
+        {verifyingPayment && (
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md space-y-4">
+            <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
+            <h3 className="text-lg font-bold text-foreground font-outfit">Confirming Secure Payment...</h3>
+            <p className="text-xs text-muted-foreground">Please wait while we verify your transaction and update order details.</p>
+          </div>
+        )}
+      </AnimatePresence>
 
       <Footer />
     </div>

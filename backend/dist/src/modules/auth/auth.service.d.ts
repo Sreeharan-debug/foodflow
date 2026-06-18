@@ -5,6 +5,7 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { Role } from '@prisma/client';
 import { EmailService } from '../email/email.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
 export declare class AuthService {
     private prisma;
     private jwtService;
@@ -19,6 +20,7 @@ export declare class AuthService {
             id: string;
             email: string;
             name: string;
+            firstName: string | null;
             role: import(".prisma/client").$Enums.Role;
             status: import(".prisma/client").$Enums.UserStatus;
             createdAt: Date;
@@ -33,10 +35,12 @@ export declare class AuthService {
             id: string;
             email: string;
             name: string;
+            firstName: string | null;
             role: import(".prisma/client").$Enums.Role;
             status: "ACTIVE";
             provider: string;
             profileImage: string | null;
+            mustChangePassword: boolean;
         };
         tokens: {
             accessToken: string;
@@ -51,6 +55,7 @@ export declare class AuthService {
             id: string;
             email: string;
             name: string;
+            firstName: string | null;
             role: import(".prisma/client").$Enums.Role;
             status: "ACTIVE";
             provider: string;
@@ -67,6 +72,9 @@ export declare class AuthService {
         refreshToken: string;
     }>;
     logout(refreshToken: string): Promise<{
+        message: string;
+    }>;
+    changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<{
         message: string;
     }>;
 }

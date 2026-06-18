@@ -18,6 +18,9 @@ const auth_service_1 = require("./auth.service");
 const register_dto_1 = require("./dto/register.dto");
 const login_dto_1 = require("./dto/login.dto");
 const refresh_dto_1 = require("./dto/refresh.dto");
+const change_password_dto_1 = require("./dto/change-password.dto");
+const jwt_auth_guard_1 = require("../../common/guards/jwt-auth.guard");
+const current_user_decorator_1 = require("../../common/decorators/current-user.decorator");
 let AuthController = class AuthController {
     authService;
     constructor(authService) {
@@ -37,6 +40,9 @@ let AuthController = class AuthController {
     }
     async logout(refreshDto) {
         return this.authService.logout(refreshDto.refreshToken);
+    }
+    async changePassword(userId, changePasswordDto) {
+        return this.authService.changePassword(userId, changePasswordDto);
     }
 };
 exports.AuthController = AuthController;
@@ -80,6 +86,16 @@ __decorate([
     __metadata("design:paramtypes", [refresh_dto_1.RefreshDto]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "logout", null);
+__decorate([
+    (0, common_1.Post)('change-password'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, current_user_decorator_1.CurrentUser)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, change_password_dto_1.ChangePasswordDto]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "changePassword", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
     __metadata("design:paramtypes", [auth_service_1.AuthService])

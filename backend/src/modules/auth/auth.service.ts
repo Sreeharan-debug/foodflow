@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
@@ -7,6 +7,7 @@ import { RefreshDto } from './dto/refresh.dto';
 import * as bcrypt from 'bcrypt';
 import { Role, UserStatus } from '@prisma/client';
 import { EmailService } from '../email/email.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -24,22 +25,46 @@ export class AuthService {
       expiresIn: (process.env.JWT_ACCESS_EXPIRATION || '15m') as any,
     });
 
-    const refreshToken = await this.jwtService.signAsync(payload, {
-      secret: process.env.JWT_REFRESH_SECRET || 'foodflow_jwt_refresh_secret_key_12345',
-      expiresIn: (process.env.JWT_REFRESH_EXPIRATION || '7d') as any,
-    });
+    // Helper to generate a refresh token and ensure uniqueness
+    const generateUniqueRefreshToken = async (): Promise<string> => {
+      const token = await this.jwtService.signAsync(payload, {
+        secret: process.env.JWT_REFRESH_SECRET || 'foodflow_jwt_refresh_secret_key_12345',
+        expiresIn: (process.env.JWT_REFRESH_EXPIRATION || '7d') as any,
+      });
+      try {
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7);
+        await this.prisma.refreshToken.create({
+          data: {
+            token,
+            userId,
+            expiresAt,
+          },
+        });
+        return token;
+      } catch (e) {
+        // If a unique constraint violation occurs, retry once
+        if (e?.code === 'P2002') {
+          const retryToken = await this.jwtService.signAsync(payload, {
+            secret: process.env.JWT_REFRESH_SECRET || 'foodflow_jwt_refresh_secret_key_12345',
+            expiresIn: (process.env.JWT_REFRESH_EXPIRATION || '7d') as any,
+          });
+          const expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + 7);
+          await this.prisma.refreshToken.create({
+            data: {
+              token: retryToken,
+              userId,
+              expiresAt,
+            },
+          });
+          return retryToken;
+        }
+        throw e;
+      }
+    };
 
-    // Save refresh token to database
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
-
-    await this.prisma.refreshToken.create({
-      data: {
-        token: refreshToken,
-        userId,
-        expiresAt,
-      },
-    });
+    const refreshToken = await generateUniqueRefreshToken();
 
     return { accessToken, refreshToken };
   }
@@ -61,6 +86,7 @@ export class AuthService {
           email: registerDto.email,
           password: hashedPassword,
           name: registerDto.name,
+          firstName: registerDto.name.split(' ')[0] || registerDto.name,
           role: Role.CUSTOMER,
           status: UserStatus.ACTIVE,
         },
@@ -68,6 +94,7 @@ export class AuthService {
           id: true,
           email: true,
           name: true,
+          firstName: true,
           role: true,
           status: true,
           createdAt: true,
@@ -114,10 +141,12 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
+        firstName: user.firstName,
         role: user.role,
         status: user.status,
         provider: user.provider,
         profileImage: user.profileImage,
+        mustChangePassword: user.mustChangePassword,
       },
       tokens,
     };
@@ -127,53 +156,55 @@ export class AuthService {
     let email: string;
     let name: string;
     let picture: string | null = null;
+    let firstName: string | null = null;
 
-    const isMockMode = process.env.MOCK_GOOGLE_LOGIN === 'true' || googleLoginDto.code === 'mock-auth-code';
+    const client_id = process.env.GOOGLE_CLIENT_ID;
+    const client_secret = process.env.GOOGLE_CLIENT_SECRET;
 
-    if (isMockMode) {
-      email = 'rahul.nair@gmail.com';
-      name = 'Rahul Nair';
-      picture = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
-    } else {
-      try {
-        const client_id = process.env.GOOGLE_CLIENT_ID;
-        const client_secret = process.env.GOOGLE_CLIENT_SECRET;
+    if (!client_id || !client_secret) {
+      throw new UnauthorizedException('Google OAuth credentials are not configured on the server.');
+    }
 
-        const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            code: googleLoginDto.code,
-            client_id: client_id || '',
-            client_secret: client_secret || '',
-            redirect_uri: googleLoginDto.redirectUri,
-            grant_type: 'authorization_code',
-          }),
-        });
+    try {
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code: googleLoginDto.code,
+          client_id,
+          client_secret,
+          redirect_uri: googleLoginDto.redirectUri,
+          grant_type: 'authorization_code',
+        }),
+      });
 
-        if (!tokenResponse.ok) {
-          const errText = await tokenResponse.text();
-          throw new UnauthorizedException(`Google token exchange failed: ${errText}`);
-        }
-
-        const tokens = await tokenResponse.json();
-        const accessToken = tokens.access_token;
-
-        const userinfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
-
-        if (!userinfoResponse.ok) {
-          throw new UnauthorizedException('Failed to fetch user info from Google');
-        }
-
-        const profile = await userinfoResponse.json();
-        email = profile.email;
-        name = profile.name || profile.given_name || 'Google User';
-        picture = profile.picture || null;
-      } catch (error) {
-        throw new UnauthorizedException(error.message || 'Google authentication failed');
+      if (!tokenResponse.ok) {
+        const errText = await tokenResponse.text();
+        throw new UnauthorizedException(`Google token exchange failed: ${errText}`);
       }
+
+      const tokens = await tokenResponse.json();
+      const accessToken = tokens.access_token;
+
+      const userinfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+
+      if (!userinfoResponse.ok) {
+        throw new UnauthorizedException('Failed to fetch user info from Google');
+      }
+
+      const profile = await userinfoResponse.json();
+      email = profile.email;
+      name = profile.name || profile.given_name || 'Google User';
+      firstName = profile.given_name || name.split(' ')[0] || 'Google';
+      picture = profile.picture || null;
+    } catch (error: any) {
+      throw new UnauthorizedException(error.message || 'Google authentication failed');
+    }
+
+    if (!firstName) {
+      firstName = name.split(' ')[0] || 'Google';
     }
 
     let user = await this.prisma.user.findUnique({
@@ -189,7 +220,8 @@ export class AuthService {
           data: {
             email,
             name,
-            provider: 'GOOGLE',
+            firstName,
+            provider: 'google',
             profileImage: picture,
             welcomeEmailSent: true,
             status: UserStatus.ACTIVE,
@@ -204,16 +236,19 @@ export class AuthService {
         return createdUser;
       });
 
-      this.emailService.sendWelcomeEmail(name, email).catch((err) => {
+      this.emailService.sendWelcomeEmail(firstName, email).catch((err) => {
         console.error('Failed to send welcome email:', err);
       });
     } else {
       const updates: any = {};
-      if (user.provider !== 'GOOGLE') {
-        updates.provider = 'GOOGLE';
+      if (user.provider !== 'google') {
+        updates.provider = 'google';
       }
       if (picture && user.profileImage !== picture) {
         updates.profileImage = picture;
+      }
+      if (!user.firstName) {
+        updates.firstName = firstName;
       }
 
       if (Object.keys(updates).length > 0) {
@@ -235,6 +270,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
+        firstName: user.firstName,
         role: user.role,
         status: user.status,
         provider: user.provider,
@@ -292,5 +328,34 @@ export class AuthService {
       // If the token doesn't exist, we don't care, just succeed logout
     }
     return { message: 'Logged out successfully' };
+  }
+
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDto) {
+    const { currentPassword, newPassword } = changePasswordDto;
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user || !user.password) {
+      throw new BadRequestException('Invalid user account or cannot change password for social account');
+    }
+
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
+      throw new BadRequestException('Incorrect current password');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: hashedPassword,
+        mustChangePassword: false,
+      },
+    });
+
+    return { message: 'Password changed successfully' };
   }
 }

@@ -11,12 +11,13 @@ const common_1 = require("@nestjs/common");
 const orders_service_1 = require("./orders.service");
 const orders_controller_1 = require("./orders.controller");
 const websocket_module_1 = require("../websocket/websocket.module");
+const payments_module_1 = require("../payments/payments.module");
 let OrdersModule = class OrdersModule {
 };
 exports.OrdersModule = OrdersModule;
 exports.OrdersModule = OrdersModule = __decorate([
     (0, common_1.Module)({
-        imports: [websocket_module_1.WebsocketModule],
+        imports: [websocket_module_1.WebsocketModule, payments_module_1.PaymentsModule],
         controllers: [orders_controller_1.OrdersController],
         providers: [orders_service_1.OrdersService],
         exports: [orders_service_1.OrdersService],

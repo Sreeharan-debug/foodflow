@@ -20,11 +20,23 @@ export default function Navbar() {
   const handleGoogleLogin = () => {
     const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
     if (!clientId || clientId === 'mock_client_id' || clientId === '') {
-      window.location.href = `/login?code=mock-auth-code`;
+      window.location.href = `/login?error=google_oauth_not_configured`;
     } else {
       const redirectUri = encodeURIComponent(`${window.location.origin}/login`);
       const scope = encodeURIComponent('openid profile email');
       window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}`;
+    }
+  };
+
+  const getGreeting = (name: string) => {
+    const firstName = name ? name.split(' ')[0] : 'Guest';
+    const hour = new Date().getHours();
+    if (hour < 12) {
+      return `Good Morning, ${firstName}!`;
+    } else if (hour < 17) {
+      return `Good Afternoon, ${firstName}!`;
+    } else {
+      return `Good Evening, ${firstName}!`;
     }
   };
 
@@ -78,7 +90,7 @@ export default function Navbar() {
                   FOODFLOW
                 </span>
                 <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">
-                  3.0
+                  4.1
                 </span>
               </Link>
             </div>
@@ -150,7 +162,14 @@ export default function Navbar() {
                         <User className="w-4 h-4" />
                       </div>
                     )}
-                    <span className="font-medium max-w-[120px] truncate">{getFirstName(user?.name)}</span>
+                    <div className="flex flex-col items-start leading-tight">
+                      <span className="font-semibold text-xs text-foreground">{getGreeting(user?.name || '')}</span>
+                      {user?.role === 'ADMIN' && (
+                        <span className="mt-0.5 bg-red-500/15 text-red-400 border border-red-500/20 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider scale-90 -translate-x-1">
+                          Admin
+                        </span>
+                      )}
+                    </div>
                   </Link>
                   <button
                     onClick={logout}

@@ -16,8 +16,8 @@ const passport_google_oauth20_1 = require("passport-google-oauth20");
 let GoogleStrategy = class GoogleStrategy extends (0, passport_1.PassportStrategy)(passport_google_oauth20_1.Strategy, 'google') {
     constructor() {
         super({
-            clientID: process.env.GOOGLE_CLIENT_ID || 'mock_google_client_id',
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'mock_google_client_secret',
+            clientID: process.env.GOOGLE_CLIENT_ID || '',
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
             callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/api/auth/callback/google',
             scope: ['email', 'profile'],
         });

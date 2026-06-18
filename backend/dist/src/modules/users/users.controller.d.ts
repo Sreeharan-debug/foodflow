@@ -56,30 +56,36 @@ export declare class UsersController {
         id: string;
         email: string;
         name: string;
+        firstName: string | null;
         role: import(".prisma/client").$Enums.Role;
         status: import(".prisma/client").$Enums.UserStatus;
         provider: string;
         profileImage: string | null;
+        mustChangePassword: boolean;
         createdAt: Date;
     }[]>;
     getUserById(id: string): Promise<{
         id: string;
         email: string;
         name: string;
+        firstName: string | null;
         role: import(".prisma/client").$Enums.Role;
         status: import(".prisma/client").$Enums.UserStatus;
         provider: string;
         profileImage: string | null;
+        mustChangePassword: boolean;
         createdAt: Date;
     }>;
     updateUser(id: string, updateUserDto: UpdateUserDto, adminEmail: string): Promise<{
         id: string;
         email: string;
         name: string;
+        firstName: string | null;
         role: import(".prisma/client").$Enums.Role;
         status: import(".prisma/client").$Enums.UserStatus;
         provider: string;
         profileImage: string | null;
+        mustChangePassword: boolean;
     }>;
     deleteUser(id: string): Promise<{
         message: string;

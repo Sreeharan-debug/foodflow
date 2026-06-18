@@ -73,7 +73,12 @@ export class FoodsService {
         orderBy,
         skip,
         take: limit,
-        include: { category: true },
+        include: {
+          category: true,
+          _count: {
+            select: { reviews: true },
+          },
+        },
       }),
       this.prisma.food.count({ where }),
     ]);
@@ -100,7 +105,12 @@ export class FoodsService {
   async findFeatured() {
     return this.prisma.food.findMany({
       where: { featured: true, isAvailable: true },
-      include: { category: true },
+      include: {
+        category: true,
+        _count: {
+          select: { reviews: true },
+        },
+      },
       orderBy: { rating: 'desc' },
     });
   }
@@ -108,7 +118,12 @@ export class FoodsService {
   async findPopular() {
     return this.prisma.food.findMany({
       where: { rating: { gte: 4.7 }, isAvailable: true },
-      include: { category: true },
+      include: {
+        category: true,
+        _count: {
+          select: { reviews: true },
+        },
+      },
       orderBy: { rating: 'desc' },
       take: 6,
     });
@@ -117,7 +132,12 @@ export class FoodsService {
   async findOne(id: string) {
     const food = await this.prisma.food.findUnique({
       where: { id },
-      include: { category: true },
+      include: {
+        category: true,
+        _count: {
+          select: { reviews: true },
+        },
+      },
     });
 
     if (!food) {

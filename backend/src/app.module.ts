@@ -12,6 +12,8 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 import { EmailModule } from './modules/email/email.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { EmailModule } from './modules/email/email.module';
     DashboardModule,
     AuditModule,
     WebsocketModule,
+    PaymentsModule,
+    ReviewsModule,
   ],
 })
 export class AppModule {}

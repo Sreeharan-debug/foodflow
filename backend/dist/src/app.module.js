@@ -21,6 +21,8 @@ const dashboard_module_1 = require("./modules/dashboard/dashboard.module");
 const audit_module_1 = require("./modules/audit/audit.module");
 const websocket_module_1 = require("./modules/websocket/websocket.module");
 const email_module_1 = require("./modules/email/email.module");
+const payments_module_1 = require("./modules/payments/payments.module");
+const reviews_module_1 = require("./modules/reviews/reviews.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -42,6 +44,8 @@ exports.AppModule = AppModule = __decorate([
             dashboard_module_1.DashboardModule,
             audit_module_1.AuditModule,
             websocket_module_1.WebsocketModule,
+            payments_module_1.PaymentsModule,
+            reviews_module_1.ReviewsModule,
         ],
     })
 ], AppModule);

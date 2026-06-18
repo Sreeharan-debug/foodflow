@@ -27,21 +27,24 @@ enum OrderStatus {
 }
 
 model User {
-  id               String         @id @default(uuid())
-  email            String         @unique
-  password         String?
-  name             String
-  role             Role           @default(CUSTOMER)
-  status           UserStatus     @default(ACTIVE)
-  provider         String         @default("credentials")
-  profileImage     String?
-  welcomeEmailSent Boolean        @default(false)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  refreshTokens    RefreshToken[]
-  addresses        Address[]
-  cart             Cart?
-  orders           Order[]
+  id                 String         @id @default(uuid())
+  email              String         @unique
+  password           String?
+  name               String
+  firstName          String?
+  role               Role           @default(CUSTOMER)
+  status             UserStatus     @default(ACTIVE)
+  provider           String         @default("credentials")
+  profileImage       String?
+  welcomeEmailSent   Boolean        @default(false)
+  mustChangePassword Boolean        @default(false)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  refreshTokens      RefreshToken[]
+  addresses          Address[]
+  cart               Cart?
+  orders             Order[]
+  reviews            Review[]
 
   @@index([email])
 }
@@ -107,6 +110,7 @@ model Food {
   updatedAt       DateTime    @updatedAt
   cartItems       CartItem[]
   orderItems      OrderItem[]
+  reviews         Review[]
 
   @@index([categoryId])
 }
@@ -134,20 +138,22 @@ model CartItem {
 }
 
 model Order {
-  id        String      @id @default(uuid())
-  userId    String
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  total     Decimal     @db.Decimal(10, 2)
-  tax       Decimal     @db.Decimal(10, 2)
-  discount  Decimal     @db.Decimal(10, 2) @default(0.00)
-  couponId  String?
-  coupon    Coupon?     @relation(fields: [couponId], references: [id], onDelete: SetNull)
-  addressId String
-  address   Address     @relation(fields: [addressId], references: [id], onDelete: Restrict)
-  status    OrderStatus @default(PENDING)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  items     OrderItem[]
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  total         Decimal     @db.Decimal(10, 2)
+  tax           Decimal     @db.Decimal(10, 2)
+  discount      Decimal     @db.Decimal(10, 2) @default(0.00)
+  couponId      String?
+  coupon        Coupon?     @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  addressId     String
+  address       Address     @relation(fields: [addressId], references: [id], onDelete: Restrict)
+  status        OrderStatus @default(PENDING)
+  paymentStatus String      @default("PENDING")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  items         OrderItem[]
+  payments      Payment[]
 
   @@index([userId])
 }
@@ -188,4 +194,29 @@ model AuditLog {
   timestamp   DateTime @default(now())
 
   @@index([timestamp])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  rating    Int      // 1 to 5
+  comment   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  foodId    String
+  food      Food     @relation(fields: [foodId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, foodId])
+}
+
+model Payment {
+  id                String   @id @default(uuid())
+  orderId           String
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  razorpayOrderId   String   @unique
+  razorpayPaymentId String?  @unique
+  amount            Decimal  @db.Decimal(10, 2)
+  status            String   // "PENDING", "SUCCESS", "FAILED"
+  createdAt         DateTime @default(now())
 }

@@ -15,14 +15,17 @@ const prisma_service_1 = require("../../prisma/prisma.service");
 const websocket_gateway_1 = require("../websocket/websocket.gateway");
 const client_1 = require("@prisma/client");
 const email_service_1 = require("../email/email.service");
+const payments_service_1 = require("../payments/payments.service");
 let OrdersService = class OrdersService {
     prisma;
     wsGateway;
     emailService;
-    constructor(prisma, wsGateway, emailService) {
+    paymentsService;
+    constructor(prisma, wsGateway, emailService, paymentsService) {
         this.prisma = prisma;
         this.wsGateway = wsGateway;
         this.emailService = emailService;
+        this.paymentsService = paymentsService;
     }
     async checkout(userId, checkoutDto) {
         const { addressId, couponCode } = checkoutDto;
@@ -115,12 +118,8 @@ let OrdersService = class OrdersService {
                 entityId: order.id,
             },
         });
-        this.emailService
-            .sendOrderConfirmationEmail(order.user.name, order.user.email, order.id, order.total.toString())
-            .catch((err) => {
-            console.error('Failed to send order confirmation email:', err);
-        });
-        return order;
+        const razorpayOrder = await this.paymentsService.createRazorpayOrder(order.id, userId);
+        return { order, razorpayOrder };
     }
     async findAll(userId, role) {
         if (role === client_1.Role.ADMIN) {
@@ -199,6 +198,7 @@ exports.OrdersService = OrdersService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         websocket_gateway_1.WebsocketGateway,
-        email_service_1.EmailService])
+        email_service_1.EmailService,
+        payments_service_1.PaymentsService])
 ], OrdersService);
 //# sourceMappingURL=orders.service.js.map

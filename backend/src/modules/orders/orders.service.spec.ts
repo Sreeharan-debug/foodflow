@@ -3,6 +3,7 @@ import { OrdersService } from './orders.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { EmailService } from '../email/email.service';
+import { PaymentsService } from '../payments/payments.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { OrderStatus, Prisma, Role } from '@prisma/client';
 
@@ -10,6 +11,7 @@ describe('OrdersService', () => {
   let service: OrdersService;
   let prisma: PrismaService;
   let wsGateway: WebsocketGateway;
+  let paymentsService: PaymentsService;
 
   const mockPrismaService = {
     cart: {
@@ -45,6 +47,11 @@ describe('OrdersService', () => {
     sendOrderConfirmationEmail: jest.fn().mockResolvedValue(undefined),
   };
 
+  const mockPaymentsService = {
+    createRazorpayOrder: jest.fn(),
+    verifyPayment: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -52,12 +59,14 @@ describe('OrdersService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: WebsocketGateway, useValue: mockWsGateway },
         { provide: EmailService, useValue: mockEmailService },
+        { provide: PaymentsService, useValue: mockPaymentsService },
       ],
     }).compile();
 
     service = module.get<OrdersService>(OrdersService);
     prisma = module.get<PrismaService>(PrismaService);
     wsGateway = module.get<WebsocketGateway>(WebsocketGateway);
+    paymentsService = module.get<PaymentsService>(PaymentsService);
 
     jest.clearAllMocks();
   });
@@ -139,7 +148,7 @@ describe('OrdersService', () => {
 
       const result = await service.checkout(userId, checkoutDto);
 
-      expect(result).toEqual(createdOrder);
+      expect(result).toEqual({ order: createdOrder, razorpayOrder: undefined });
       expect(mockWsGateway.broadcastOrderCreated).toHaveBeenCalledWith(createdOrder);
       expect(mockPrismaService.cartItem.deleteMany).toHaveBeenCalled();
       expect(mockPrismaService.auditLog.create).toHaveBeenCalled();

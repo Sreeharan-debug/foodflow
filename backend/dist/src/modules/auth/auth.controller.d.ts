@@ -2,6 +2,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 export declare class AuthController {
     private readonly authService;
     constructor(authService: AuthService);
@@ -10,6 +11,7 @@ export declare class AuthController {
             id: string;
             email: string;
             name: string;
+            firstName: string | null;
             role: import(".prisma/client").$Enums.Role;
             status: import(".prisma/client").$Enums.UserStatus;
             createdAt: Date;
@@ -24,10 +26,12 @@ export declare class AuthController {
             id: string;
             email: string;
             name: string;
+            firstName: string | null;
             role: import(".prisma/client").$Enums.Role;
             status: "ACTIVE";
             provider: string;
             profileImage: string | null;
+            mustChangePassword: boolean;
         };
         tokens: {
             accessToken: string;
@@ -42,6 +46,7 @@ export declare class AuthController {
             id: string;
             email: string;
             name: string;
+            firstName: string | null;
             role: import(".prisma/client").$Enums.Role;
             status: "ACTIVE";
             provider: string;
@@ -58,6 +63,9 @@ export declare class AuthController {
         refreshToken: string;
     }>;
     logout(refreshDto: RefreshDto): Promise<{
+        message: string;
+    }>;
+    changePassword(userId: string, changePasswordDto: ChangePasswordDto): Promise<{
         message: string;
     }>;
 }

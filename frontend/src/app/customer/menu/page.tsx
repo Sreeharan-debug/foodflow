@@ -4,9 +4,10 @@ import React, { useState } from 'react';
 import Navbar from '@/components/shared/navbar';
 import Footer from '@/components/shared/footer';
 import CartDrawer from '@/components/shared/cart-drawer';
+import FoodDetailModal from '@/components/shared/food-detail-modal';
 import { useAuth } from '@/providers/auth-provider';
 import { getFirstName } from '@/utils/name';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { useCart } from '@/providers/cart-provider';
 import { Search, SlidersHorizontal, Clock, Star, Plus, ChevronLeft, ChevronRight, Loader2, Sparkles, Flame, Check } from 'lucide-react';
@@ -28,6 +29,7 @@ interface Food {
   isTrending: boolean;
   isNew: boolean;
   spiceLevel?: string;
+  _count?: { reviews: number };
 }
 
 interface Category {
@@ -38,11 +40,13 @@ interface Category {
 export default function MenuPage() {
   const { user, isAuthenticated } = useAuth();
   const { addToCart } = useCart();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [sort, setSort] = useState('name_asc');
   const [page, setPage] = useState(1);
   const [isVegOnly, setIsVegOnly] = useState(false);
+  const [selectedFoodDetail, setSelectedFoodDetail] = useState<Food | null>(null);
   const limit = 8;
 
   // 1. Fetch Categories
@@ -181,7 +185,10 @@ export default function MenuPage() {
                 className="w-[260px] shrink-0 glass rounded-2xl overflow-hidden flex flex-col justify-between group hover:border-orange-500/30 hover:shadow-lg transition-all border border-border/40"
               >
                 {/* Card Image */}
-                <div className="relative overflow-hidden aspect-[4/3] bg-muted border-b border-border/30">
+                <div
+                  onClick={() => setSelectedFoodDetail(food)}
+                  className="relative overflow-hidden aspect-[4/3] bg-muted border-b border-border/30 cursor-pointer"
+                >
                   {food.imageUrl && (
                     <img
                       src={food.imageUrl}
@@ -228,13 +235,21 @@ export default function MenuPage() {
                 <div className="p-4 flex-1 flex flex-col justify-between">
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-semibold text-yellow-400 flex items-center">
-                        <Star className="w-3 h-3 fill-current mr-0.5" />
-                        {food.rating.toFixed(1)}
-                      </span>
+                      <div className="flex items-center space-x-1.5">
+                        <span className="text-[10px] font-semibold text-yellow-400 flex items-center">
+                          <Star className="w-3 h-3 fill-current mr-0.5" />
+                          {food.rating.toFixed(1)}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground">
+                          ({food._count?.reviews || 0} reviews)
+                        </span>
+                      </div>
                       {renderFoodMeta(food)}
                     </div>
-                    <h4 className="text-sm font-bold text-foreground font-outfit line-clamp-1 group-hover:text-orange-400 transition-colors">
+                    <h4
+                      onClick={() => setSelectedFoodDetail(food)}
+                      className="text-sm font-bold text-foreground font-outfit line-clamp-1 hover:text-orange-400 transition-colors cursor-pointer"
+                    >
                       {food.name}
                     </h4>
                     <p className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
@@ -436,7 +451,10 @@ export default function MenuPage() {
                   className="glass rounded-2xl overflow-hidden flex flex-col justify-between group hover:border-orange-500/30 hover:shadow-xl transition-all h-full"
                 >
                   {/* Card Image Header */}
-                  <div className="relative overflow-hidden aspect-[4/3] bg-muted border-b border-border/30">
+                  <div
+                    onClick={() => setSelectedFoodDetail(food)}
+                    className="relative overflow-hidden aspect-[4/3] bg-muted border-b border-border/30 cursor-pointer"
+                  >
                     {food.imageUrl && (
                       <img
                         src={food.imageUrl}
@@ -483,13 +501,21 @@ export default function MenuPage() {
                   <div className="p-5 flex-1 flex flex-col justify-between">
                     <div className="space-y-2">
                        <div className="flex items-center justify-between">
-                         <span className="flex items-center text-xs font-semibold text-yellow-400">
-                           <Star className="w-3.5 h-3.5 fill-current mr-1" />
-                           {food.rating.toFixed(1)}
-                         </span>
+                         <div className="flex items-center space-x-1.5">
+                           <span className="flex items-center text-xs font-semibold text-yellow-400">
+                             <Star className="w-3.5 h-3.5 fill-current mr-1" />
+                             {food.rating.toFixed(1)}
+                           </span>
+                           <span className="text-[10px] text-muted-foreground">
+                             ({food._count?.reviews || 0} reviews)
+                           </span>
+                         </div>
                          {renderFoodMeta(food)}
                        </div>
-                      <h3 className="text-base font-bold text-foreground font-outfit leading-tight group-hover:text-orange-400 transition-colors">
+                      <h3
+                        onClick={() => setSelectedFoodDetail(food)}
+                        className="text-base font-bold text-foreground font-outfit leading-tight hover:text-orange-400 transition-colors cursor-pointer"
+                      >
                         {food.name}
                       </h3>
                       <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
@@ -539,6 +565,14 @@ export default function MenuPage() {
           </div>
         )}
       </main>
+
+      <FoodDetailModal
+        food={selectedFoodDetail}
+        onClose={() => setSelectedFoodDetail(null)}
+        onReviewSubmitted={() => {
+          queryClient.invalidateQueries({ queryKey: ['foods'] });
+        }}
+      />
 
       <Footer />
     </div>

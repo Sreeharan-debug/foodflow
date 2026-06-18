@@ -22,6 +22,9 @@ export declare class FoodsService {
                 updatedAt: Date;
                 description: string | null;
             };
+            _count: {
+                reviews: number;
+            };
         } & {
             id: string;
             name: string;
@@ -81,6 +84,9 @@ export declare class FoodsService {
             updatedAt: Date;
             description: string | null;
         };
+        _count: {
+            reviews: number;
+        };
     } & {
         id: string;
         name: string;
@@ -108,6 +114,9 @@ export declare class FoodsService {
             updatedAt: Date;
             description: string | null;
         };
+        _count: {
+            reviews: number;
+        };
     } & {
         id: string;
         name: string;
@@ -134,6 +143,9 @@ export declare class FoodsService {
             createdAt: Date;
             updatedAt: Date;
             description: string | null;
+        };
+        _count: {
+            reviews: number;
         };
     } & {
         id: string;

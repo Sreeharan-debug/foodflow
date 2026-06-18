@@ -5,12 +5,15 @@ import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { OrderStatus, Prisma, Role } from '@prisma/client';
 import { EmailService } from '../email/email.service';
 
+import { PaymentsService } from '../payments/payments.service';
+
 @Injectable()
 export class OrdersService {
   constructor(
     private prisma: PrismaService,
     private wsGateway: WebsocketGateway,
     private emailService: EmailService,
+    private paymentsService: PaymentsService,
   ) {}
 
   async checkout(userId: string, checkoutDto: CheckoutDto) {
@@ -133,14 +136,10 @@ export class OrdersService {
       },
     });
 
-    // 10. Send Order Confirmation Email
-    this.emailService
-      .sendOrderConfirmationEmail(order.user.name, order.user.email, order.id, order.total.toString())
-      .catch((err) => {
-        console.error('Failed to send order confirmation email:', err);
-      });
+    // 10. Initialize Razorpay Payment Order
+    const razorpayOrder = await this.paymentsService.createRazorpayOrder(order.id, userId);
 
-    return order;
+    return { order, razorpayOrder };
   }
 
   async findAll(userId: string, role: Role) {

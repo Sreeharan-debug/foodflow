@@ -64,19 +64,44 @@ let AuthService = class AuthService {
             secret: process.env.JWT_ACCESS_SECRET || 'foodflow_jwt_access_secret_key_12345',
             expiresIn: (process.env.JWT_ACCESS_EXPIRATION || '15m'),
         });
-        const refreshToken = await this.jwtService.signAsync(payload, {
-            secret: process.env.JWT_REFRESH_SECRET || 'foodflow_jwt_refresh_secret_key_12345',
-            expiresIn: (process.env.JWT_REFRESH_EXPIRATION || '7d'),
-        });
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 7);
-        await this.prisma.refreshToken.create({
-            data: {
-                token: refreshToken,
-                userId,
-                expiresAt,
-            },
-        });
+        const generateUniqueRefreshToken = async () => {
+            const token = await this.jwtService.signAsync(payload, {
+                secret: process.env.JWT_REFRESH_SECRET || 'foodflow_jwt_refresh_secret_key_12345',
+                expiresIn: (process.env.JWT_REFRESH_EXPIRATION || '7d'),
+            });
+            try {
+                const expiresAt = new Date();
+                expiresAt.setDate(expiresAt.getDate() + 7);
+                await this.prisma.refreshToken.create({
+                    data: {
+                        token,
+                        userId,
+                        expiresAt,
+                    },
+                });
+                return token;
+            }
+            catch (e) {
+                if (e?.code === 'P2002') {
+                    const retryToken = await this.jwtService.signAsync(payload, {
+                        secret: process.env.JWT_REFRESH_SECRET || 'foodflow_jwt_refresh_secret_key_12345',
+                        expiresIn: (process.env.JWT_REFRESH_EXPIRATION || '7d'),
+                    });
+                    const expiresAt = new Date();
+                    expiresAt.setDate(expiresAt.getDate() + 7);
+                    await this.prisma.refreshToken.create({
+                        data: {
+                            token: retryToken,
+                            userId,
+                            expiresAt,
+                        },
+                    });
+                    return retryToken;
+                }
+                throw e;
+            }
+        };
+        const refreshToken = await generateUniqueRefreshToken();
         return { accessToken, refreshToken };
     }
     async register(registerDto) {
@@ -93,6 +118,7 @@ let AuthService = class AuthService {
                     email: registerDto.email,
                     password: hashedPassword,
                     name: registerDto.name,
+                    firstName: registerDto.name.split(' ')[0] || registerDto.name,
                     role: client_1.Role.CUSTOMER,
                     status: client_1.UserStatus.ACTIVE,
                 },
@@ -100,6 +126,7 @@ let AuthService = class AuthService {
                     id: true,
                     email: true,
                     name: true,
+                    firstName: true,
                     role: true,
                     status: true,
                     createdAt: true,
@@ -135,10 +162,12 @@ let AuthService = class AuthService {
                 id: user.id,
                 email: user.email,
                 name: user.name,
+                firstName: user.firstName,
                 role: user.role,
                 status: user.status,
                 provider: user.provider,
                 profileImage: user.profileImage,
+                mustChangePassword: user.mustChangePassword,
             },
             tokens,
         };
@@ -147,47 +176,47 @@ let AuthService = class AuthService {
         let email;
         let name;
         let picture = null;
-        const isMockMode = process.env.MOCK_GOOGLE_LOGIN === 'true' || googleLoginDto.code === 'mock-auth-code';
-        if (isMockMode) {
-            email = 'rahul.nair@gmail.com';
-            name = 'Rahul Nair';
-            picture = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
+        let firstName = null;
+        const client_id = process.env.GOOGLE_CLIENT_ID;
+        const client_secret = process.env.GOOGLE_CLIENT_SECRET;
+        if (!client_id || !client_secret) {
+            throw new common_1.UnauthorizedException('Google OAuth credentials are not configured on the server.');
         }
-        else {
-            try {
-                const client_id = process.env.GOOGLE_CLIENT_ID;
-                const client_secret = process.env.GOOGLE_CLIENT_SECRET;
-                const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({
-                        code: googleLoginDto.code,
-                        client_id: client_id || '',
-                        client_secret: client_secret || '',
-                        redirect_uri: googleLoginDto.redirectUri,
-                        grant_type: 'authorization_code',
-                    }),
-                });
-                if (!tokenResponse.ok) {
-                    const errText = await tokenResponse.text();
-                    throw new common_1.UnauthorizedException(`Google token exchange failed: ${errText}`);
-                }
-                const tokens = await tokenResponse.json();
-                const accessToken = tokens.access_token;
-                const userinfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                    headers: { Authorization: `Bearer ${accessToken}` },
-                });
-                if (!userinfoResponse.ok) {
-                    throw new common_1.UnauthorizedException('Failed to fetch user info from Google');
-                }
-                const profile = await userinfoResponse.json();
-                email = profile.email;
-                name = profile.name || profile.given_name || 'Google User';
-                picture = profile.picture || null;
+        try {
+            const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    code: googleLoginDto.code,
+                    client_id,
+                    client_secret,
+                    redirect_uri: googleLoginDto.redirectUri,
+                    grant_type: 'authorization_code',
+                }),
+            });
+            if (!tokenResponse.ok) {
+                const errText = await tokenResponse.text();
+                throw new common_1.UnauthorizedException(`Google token exchange failed: ${errText}`);
             }
-            catch (error) {
-                throw new common_1.UnauthorizedException(error.message || 'Google authentication failed');
+            const tokens = await tokenResponse.json();
+            const accessToken = tokens.access_token;
+            const userinfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (!userinfoResponse.ok) {
+                throw new common_1.UnauthorizedException('Failed to fetch user info from Google');
             }
+            const profile = await userinfoResponse.json();
+            email = profile.email;
+            name = profile.name || profile.given_name || 'Google User';
+            firstName = profile.given_name || name.split(' ')[0] || 'Google';
+            picture = profile.picture || null;
+        }
+        catch (error) {
+            throw new common_1.UnauthorizedException(error.message || 'Google authentication failed');
+        }
+        if (!firstName) {
+            firstName = name.split(' ')[0] || 'Google';
         }
         let user = await this.prisma.user.findUnique({
             where: { email },
@@ -200,7 +229,8 @@ let AuthService = class AuthService {
                     data: {
                         email,
                         name,
-                        provider: 'GOOGLE',
+                        firstName,
+                        provider: 'google',
                         profileImage: picture,
                         welcomeEmailSent: true,
                         status: client_1.UserStatus.ACTIVE,
@@ -212,17 +242,20 @@ let AuthService = class AuthService {
                 });
                 return createdUser;
             });
-            this.emailService.sendWelcomeEmail(name, email).catch((err) => {
+            this.emailService.sendWelcomeEmail(firstName, email).catch((err) => {
                 console.error('Failed to send welcome email:', err);
             });
         }
         else {
             const updates = {};
-            if (user.provider !== 'GOOGLE') {
-                updates.provider = 'GOOGLE';
+            if (user.provider !== 'google') {
+                updates.provider = 'google';
             }
             if (picture && user.profileImage !== picture) {
                 updates.profileImage = picture;
+            }
+            if (!user.firstName) {
+                updates.firstName = firstName;
             }
             if (Object.keys(updates).length > 0) {
                 user = await this.prisma.user.update({
@@ -240,6 +273,7 @@ let AuthService = class AuthService {
                 id: user.id,
                 email: user.email,
                 name: user.name,
+                firstName: user.firstName,
                 role: user.role,
                 status: user.status,
                 provider: user.provider,
@@ -280,6 +314,28 @@ let AuthService = class AuthService {
         catch (error) {
         }
         return { message: 'Logged out successfully' };
+    }
+    async changePassword(userId, changePasswordDto) {
+        const { currentPassword, newPassword } = changePasswordDto;
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+        });
+        if (!user || !user.password) {
+            throw new common_1.BadRequestException('Invalid user account or cannot change password for social account');
+        }
+        const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+        if (!isPasswordValid) {
+            throw new common_1.BadRequestException('Incorrect current password');
+        }
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: {
+                password: hashedPassword,
+                mustChangePassword: false,
+            },
+        });
+        return { message: 'Password changed successfully' };
     }
 };
 exports.AuthService = AuthService;
