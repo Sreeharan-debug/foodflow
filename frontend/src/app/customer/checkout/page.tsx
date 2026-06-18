@@ -193,6 +193,9 @@ export default function CheckoutPage() {
       };
 
       const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', function (response: any) {
+        alert(`Payment failed: ${response.error.description} (Reason: ${response.error.reason})`);
+      });
       rzp.open();
     } catch (error: any) {
       console.error('Failed to checkout:', error);
