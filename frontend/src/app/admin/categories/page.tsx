@@ -7,6 +7,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { Trash2, Plus, Pencil, Loader2, AlertCircle, Check, X } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/providers/auth-provider';
+import StatusBlocker from '@/components/shared/status-blocker';
 
 interface Category {
   id: string;
@@ -16,8 +18,21 @@ interface Category {
 }
 
 export default function AdminCategoriesPage() {
+  const { user } = useAuth();
+  const restaurantStatus = user?.restaurant?.status;
+
   const queryClient = useQueryClient();
   const [showAddForm, setShowAddForm] = useState(false);
+
+  if (user?.role === 'ADMIN' && restaurantStatus !== 'APPROVED') {
+    return (
+      <StatusBlocker
+        status={restaurantStatus}
+        restaurantName={user?.restaurant?.name}
+        userName={user?.name}
+      />
+    );
+  }
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [formError, setFormError] = useState<string | null>(null);

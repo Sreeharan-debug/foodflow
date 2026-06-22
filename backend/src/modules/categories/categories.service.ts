@@ -6,13 +6,21 @@ import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
 export class CategoriesService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll() {
+  async findAll(restaurantId?: string) {
+    const where: any = {};
+    if (restaurantId) {
+      where.OR = [
+        { restaurantId: null },
+        { restaurantId },
+      ];
+    }
     return this.prisma.category.findMany({
+      where,
       orderBy: { name: 'asc' },
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, restaurantId?: string) {
     const category = await this.prisma.category.findUnique({
       where: { id },
       include: { foods: true },
@@ -22,12 +30,22 @@ export class CategoriesService {
       throw new NotFoundException(`Category with ID ${id} not found`);
     }
 
+    if (restaurantId && category.restaurantId && category.restaurantId !== restaurantId) {
+      throw new NotFoundException(`Category with ID ${id} not found`);
+    }
+
     return category;
   }
 
-  async create(createCategoryDto: CreateCategoryDto, performedBy: string) {
-    const existing = await this.prisma.category.findUnique({
-      where: { name: createCategoryDto.name },
+  async create(createCategoryDto: CreateCategoryDto, performedBy: string, restaurantId?: string) {
+    const existing = await this.prisma.category.findFirst({
+      where: {
+        name: { equals: createCategoryDto.name, mode: 'insensitive' },
+        OR: [
+          { restaurantId: null },
+          { restaurantId },
+        ],
+      },
     });
 
     if (existing) {
@@ -35,7 +53,10 @@ export class CategoriesService {
     }
 
     const category = await this.prisma.category.create({
-      data: createCategoryDto,
+      data: {
+        ...createCategoryDto,
+        restaurantId,
+      },
     });
 
     await this.prisma.auditLog.create({
@@ -50,8 +71,12 @@ export class CategoriesService {
     return category;
   }
 
-  async update(id: string, updateCategoryDto: UpdateCategoryDto, performedBy: string) {
-    await this.findOne(id);
+  async update(id: string, updateCategoryDto: UpdateCategoryDto, performedBy: string, restaurantId?: string) {
+    const existingCategory = await this.findOne(id, restaurantId);
+    
+    if (existingCategory.restaurantId && existingCategory.restaurantId !== restaurantId) {
+      throw new ConflictException('You do not have permission to edit this category');
+    }
 
     if (updateCategoryDto.name) {
       const existing = await this.prisma.category.findFirst({
@@ -82,8 +107,11 @@ export class CategoriesService {
     return category;
   }
 
-  async remove(id: string, performedBy: string) {
-    await this.findOne(id);
+  async remove(id: string, performedBy: string, restaurantId?: string) {
+    const existingCategory = await this.findOne(id, restaurantId);
+    if (existingCategory.restaurantId && existingCategory.restaurantId !== restaurantId) {
+      throw new ConflictException('You do not have permission to delete this category');
+    }
     await this.prisma.category.delete({ where: { id } });
 
     await this.prisma.auditLog.create({

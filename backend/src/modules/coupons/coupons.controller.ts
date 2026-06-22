@@ -21,15 +21,15 @@ export class CouponsController {
   @Get()
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
-  async getCoupons() {
-    return this.couponsService.findAll();
+  async getCoupons(@CurrentUser() adminUser: any) {
+    return this.couponsService.findAll(adminUser.restaurant?.id);
   }
 
   @Get(':id')
   @UseGuards(RolesGuard)
   @Roles(Role.ADMIN)
-  async getCouponById(@Param('id') id: string) {
-    return this.couponsService.findOne(id);
+  async getCouponById(@Param('id') id: string, @CurrentUser() adminUser: any) {
+    return this.couponsService.findOne(id, adminUser.restaurant?.id);
   }
 
   @Post()
@@ -37,9 +37,9 @@ export class CouponsController {
   @Roles(Role.ADMIN)
   async createCoupon(
     @Body() createCouponDto: CreateCouponDto,
-    @CurrentUser('email') adminEmail: string,
+    @CurrentUser() adminUser: any,
   ) {
-    return this.couponsService.create(createCouponDto, adminEmail);
+    return this.couponsService.create(createCouponDto, adminUser.email, adminUser.restaurant?.id);
   }
 
   @Put(':id')
@@ -48,9 +48,9 @@ export class CouponsController {
   async updateCoupon(
     @Param('id') id: string,
     @Body() updateCouponDto: UpdateCouponDto,
-    @CurrentUser('email') adminEmail: string,
+    @CurrentUser() adminUser: any,
   ) {
-    return this.couponsService.update(id, updateCouponDto, adminEmail);
+    return this.couponsService.update(id, updateCouponDto, adminUser.email, adminUser.restaurant?.id);
   }
 
   @Delete(':id')
@@ -58,8 +58,8 @@ export class CouponsController {
   @Roles(Role.ADMIN)
   async deleteCoupon(
     @Param('id') id: string,
-    @CurrentUser('email') adminEmail: string,
+    @CurrentUser() adminUser: any,
   ) {
-    return this.couponsService.remove(id, adminEmail);
+    return this.couponsService.remove(id, adminUser.email, adminUser.restaurant?.id);
   }
 }

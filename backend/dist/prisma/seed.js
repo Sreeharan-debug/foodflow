@@ -37,8 +37,10 @@ const client_1 = require("@prisma/client");
 const bcrypt = __importStar(require("bcrypt"));
 const prisma = new client_1.PrismaClient();
 async function main() {
-    console.log('Seeding FOODFLOW INDIA 3.0 database...');
+    console.log('Seeding FOODFLOW ENTERPRISE MULTI-VENDOR database...');
     await prisma.auditLog.deleteMany({});
+    await prisma.payment.deleteMany({});
+    await prisma.invoice.deleteMany({});
     await prisma.orderItem.deleteMany({});
     await prisma.order.deleteMany({});
     await prisma.coupon.deleteMany({});
@@ -46,22 +48,124 @@ async function main() {
     await prisma.cart.deleteMany({});
     await prisma.address.deleteMany({});
     await prisma.refreshToken.deleteMany({});
+    await prisma.review.deleteMany({});
     await prisma.food.deleteMany({});
     await prisma.category.deleteMany({});
+    await prisma.restaurant.deleteMany({});
     await prisma.user.deleteMany({});
     const saltRounds = 10;
     const adminPasswordHash = await bcrypt.hash('Admin@123', saltRounds);
     const customerPasswordHash = await bcrypt.hash('CustomerPassword123!', saltRounds);
-    const admin = await prisma.user.create({
+    const superAdminPasswordHash = await bcrypt.hash('SuperAdminPassword123!', saltRounds);
+    const superAdminEmail = process.env.SUPER_ADMIN_EMAIL || 'owner@foodflow.com';
+    const superAdmin = await prisma.user.create({
+        data: {
+            email: superAdminEmail,
+            name: 'Super Administrator',
+            password: superAdminPasswordHash,
+            role: client_1.Role.SUPER_ADMIN,
+            status: client_1.UserStatus.ACTIVE,
+            mustChangePassword: false,
+        },
+    });
+    console.log(`Seeded Super Admin: ${superAdminEmail}`);
+    await prisma.cart.create({ data: { userId: superAdmin.id } });
+    const vendorMalabarUser = await prisma.user.create({
         data: {
             email: 'admin@foodflow.com',
-            name: 'System Admin',
+            name: 'Thalassery Chef',
             password: adminPasswordHash,
             role: client_1.Role.ADMIN,
             status: client_1.UserStatus.ACTIVE,
-            mustChangePassword: true,
         },
     });
+    const restaurantMalabar = await prisma.restaurant.create({
+        data: {
+            name: 'Malabar Kitchen',
+            ownerId: vendorMalabarUser.id,
+            logo: 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&q=80&w=200',
+            address: 'Kozhikode Beach Road, Calicut, Kerala - 673001',
+            status: client_1.AdminStatus.APPROVED,
+        },
+    });
+    const vendorPunjabUser = await prisma.user.create({
+        data: {
+            email: 'vendor-north@foodflow.com',
+            name: 'Harpreet Singh',
+            password: adminPasswordHash,
+            role: client_1.Role.ADMIN,
+            status: client_1.UserStatus.ACTIVE,
+        },
+    });
+    const restaurantPunjab = await prisma.restaurant.create({
+        data: {
+            name: 'Punjab Grill',
+            ownerId: vendorPunjabUser.id,
+            logo: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&q=80&w=200',
+            address: 'MG Road, Ernakulam, Kochi, Kerala - 682016',
+            status: client_1.AdminStatus.APPROVED,
+        },
+    });
+    const vendorChineseUser = await prisma.user.create({
+        data: {
+            email: 'vendor-chinese@foodflow.com',
+            name: 'Chen Wei',
+            password: adminPasswordHash,
+            role: client_1.Role.ADMIN,
+            status: client_1.UserStatus.ACTIVE,
+        },
+    });
+    const restaurantChinatown = await prisma.restaurant.create({
+        data: {
+            name: 'Chinatown Express',
+            ownerId: vendorChineseUser.id,
+            logo: 'https://images.unsplash.com/photo-1525755662778-989d0524087e?auto=format&fit=crop&q=80&w=200',
+            address: 'Panampilly Nagar, Kochi, Kerala - 682036',
+            status: client_1.AdminStatus.PENDING,
+        },
+    });
+    const vendorSouthUser = await prisma.user.create({
+        data: {
+            email: 'vendor-south@foodflow.com',
+            name: 'Subramanian Iyer',
+            password: adminPasswordHash,
+            role: client_1.Role.ADMIN,
+            status: client_1.UserStatus.ACTIVE,
+        },
+    });
+    const restaurantUdipi = await prisma.restaurant.create({
+        data: {
+            name: 'Udipi Palace',
+            ownerId: vendorSouthUser.id,
+            logo: 'https://images.unsplash.com/photo-1541832676-9b763b0239ab?auto=format&fit=crop&q=80&w=200',
+            address: 'Indiranagar, Bangalore, Karnataka - 560038',
+            status: client_1.AdminStatus.REJECTED,
+        },
+    });
+    const vendorArabianUser = await prisma.user.create({
+        data: {
+            email: 'vendor-arabian@foodflow.com',
+            name: 'Yousef Al-Fahim',
+            password: adminPasswordHash,
+            role: client_1.Role.ADMIN,
+            status: client_1.UserStatus.ACTIVE,
+        },
+    });
+    const restaurantArabian = await prisma.restaurant.create({
+        data: {
+            name: 'Arabian Nights',
+            ownerId: vendorArabianUser.id,
+            logo: 'https://images.unsplash.com/photo-1532636875304-0c8fe119aba9?auto=format&fit=crop&q=80&w=200',
+            address: 'Kaloor Junction, Kochi, Kerala - 682017',
+            status: client_1.AdminStatus.SUSPENDED,
+        },
+    });
+    console.log('Seeded 5 Restaurants with different statuses.');
+    await prisma.cart.create({ data: { userId: vendorMalabarUser.id } });
+    await prisma.cart.create({ data: { userId: vendorPunjabUser.id } });
+    await prisma.cart.create({ data: { userId: vendorChineseUser.id } });
+    await prisma.cart.create({ data: { userId: vendorSouthUser.id } });
+    await prisma.cart.create({ data: { userId: vendorArabianUser.id } });
     const customersData = [
         { email: 'customer@foodflow.com', name: 'Sreeharan Nair' },
         { email: 'arjun.mehta@gmail.com', name: 'Arjun Mehta' },
@@ -86,12 +190,9 @@ async function main() {
             },
         });
         seededCustomers.push(createdCust);
+        await prisma.cart.create({ data: { userId: createdCust.id } });
     }
-    console.log(`Seeded 1 Admin and ${seededCustomers.length} Customer Accounts.`);
-    await prisma.cart.create({ data: { userId: admin.id } });
-    for (const cust of seededCustomers) {
-        await prisma.cart.create({ data: { userId: cust.id } });
-    }
+    console.log(`Seeded ${seededCustomers.length} Customers.`);
     const cities = ['Kozhikode', 'Kochi', 'Trivandrum', 'Bangalore', 'Chennai', 'Hyderabad'];
     const districts = ['Kozhikode', 'Ernakulam', 'Trivandrum', 'Bengaluru Urban', 'Chennai', 'Hyderabad'];
     const states = ['Kerala', 'Kerala', 'Kerala', 'Karnataka', 'Tamil Nadu', 'Telangana'];
@@ -134,19 +235,18 @@ async function main() {
             seededAddresses.push(addressOffice);
         }
     }
-    console.log(`Seeded ${seededAddresses.length} saved addresses.`);
     const categoriesData = [
-        { name: 'Biryanis', description: 'Fragrant long-grain basmati rice cooked with premium spices and meat/veggies' },
-        { name: 'South Indian', description: 'Crispy dosas, fluffy idlis, sambar, and fresh coconut chutneys' },
-        { name: 'North Indian', description: 'Rich paneer curries, tandoori items, and butter naan flatbreads' },
-        { name: 'Indo-Chinese', description: 'Indo-Chinese hakka noodles, fried rice, and spicy manchurian' },
-        { name: 'Street Food', description: 'Tangy pani puris, vada pavs, pav bhajis, and chat items' },
-        { name: 'Breakfast', description: 'Standard morning snacks, puttu, appam, and traditional combos' },
-        { name: 'Kerala Specials', description: 'Authentic Kerala nadan beef fry, porottas, and fish curries' },
-        { name: 'Arabian', description: 'Grilled Al Faham chickens, shawarma wraps, and mandi rice bowls' },
-        { name: 'Snacks', description: 'Hot samosas, banana fritters, cutlets, and tea-time snacks' },
-        { name: 'Desserts', description: 'Gulab jamuns, warm payasam, faloodas, and sweet treats' },
-        { name: 'Beverages', description: 'Fresh mango lassis, mint juices, and hot masala chai' },
+        { name: 'Biryanis', description: 'Fragrant long-grain basmati rice cooked with premium spices' },
+        { name: 'South Indian', description: 'Crispy dosas, fluffy idlis, sambar' },
+        { name: 'North Indian', description: 'Rich paneer curries, tandoori items' },
+        { name: 'Indo-Chinese', description: 'Indo-Chinese hakka noodles, fried rice' },
+        { name: 'Street Food', description: 'Tangy pani puris, vada pavs, pav bhajis' },
+        { name: 'Breakfast', description: 'Morning traditional combos' },
+        { name: 'Kerala Specials', description: 'Authentic Kerala nadan beef fry, porottas' },
+        { name: 'Arabian', description: 'Grilled Al Faham chickens, shawarma wraps' },
+        { name: 'Snacks', description: 'Hot samosas, banana fritters, tea-time snacks' },
+        { name: 'Desserts', description: 'Gulab jamuns, warm payasam, faloodas' },
+        { name: 'Beverages', description: 'Fresh mango lassis, mint juices, masala chai' },
     ];
     const categoriesMap = {};
     for (const cat of categoriesData) {
@@ -155,7 +255,6 @@ async function main() {
         });
         categoriesMap[cat.name] = createdCat.id;
     }
-    console.log('Categories / Cuisines seeded.');
     const foodsData = [
         {
             name: 'Malabar Chicken Biryani',
@@ -168,24 +267,8 @@ async function main() {
             isVeg: false,
             isBestseller: true,
             isTrending: true,
-            isNew: false,
-            spiceLevel: 'Medium',
             categoryId: categoriesMap['Biryanis'],
-        },
-        {
-            name: 'Hyderabadi Veg Biryani',
-            description: 'Slow-cooked Basmati rice layered with fresh vegetables, mint, saffron, and aromatic spices.',
-            price: 199.00,
-            imageUrl: '/images/foods/biryanis/veg-biryani.jpg',
-            rating: 4.7,
-            preparationTime: 20,
-            featured: false,
-            isVeg: true,
-            isBestseller: false,
-            isTrending: true,
-            isNew: false,
-            spiceLevel: 'Hot',
-            categoryId: categoriesMap['Biryanis'],
+            restaurantId: restaurantMalabar.id,
         },
         {
             name: 'Kerala Beef Fry (Nadan)',
@@ -198,9 +281,8 @@ async function main() {
             isVeg: false,
             isBestseller: true,
             isTrending: true,
-            isNew: false,
-            spiceLevel: 'Extra Hot',
             categoryId: categoriesMap['Kerala Specials'],
+            restaurantId: restaurantMalabar.id,
         },
         {
             name: 'Kerala Porotta (Pack of 3)',
@@ -212,130 +294,33 @@ async function main() {
             featured: true,
             isVeg: true,
             isBestseller: true,
-            isTrending: false,
-            isNew: false,
-            spiceLevel: 'Mild',
             categoryId: categoriesMap['Kerala Specials'],
+            restaurantId: restaurantMalabar.id,
         },
         {
-            name: 'Chicken Kothu Porotta',
-            description: 'Shredded Kerala porotta stir-fried with eggs, tender chicken pieces, onions, and spicy salna.',
-            price: 160.00,
-            imageUrl: '/images/foods/kerala-specials/kothu-porotta.jpg',
-            rating: 4.7,
-            preparationTime: 15,
-            featured: false,
-            isVeg: false,
-            isBestseller: false,
-            isTrending: true,
-            isNew: false,
-            spiceLevel: 'Hot',
-            categoryId: categoriesMap['Kerala Specials'],
-        },
-        {
-            name: 'Nadan Fish Curry Meals',
-            description: 'Traditional Kerala rice served with spicy coconut fish curry, stir-fried cabbage, pickle, and moru.',
-            price: 220.00,
-            imageUrl: '/images/foods/kerala-specials/fish-curry-meals.jpg',
-            rating: 4.85,
-            preparationTime: 22,
-            featured: true,
-            isVeg: false,
-            isBestseller: true,
-            isTrending: false,
-            isNew: false,
-            spiceLevel: 'Hot',
-            categoryId: categoriesMap['Kerala Specials'],
-        },
-        {
-            name: 'Puttu and Kadala Curry',
-            description: 'Steamed ground rice and coconut cylinders served with flavorful black chickpea gravy.',
-            price: 90.00,
-            imageUrl: '/images/foods/breakfast/puttu-kadala.jpg',
-            rating: 4.75,
-            preparationTime: 15,
-            featured: false,
-            isVeg: true,
-            isBestseller: true,
-            isTrending: false,
-            isNew: false,
-            spiceLevel: null,
-            categoryId: categoriesMap['Breakfast'],
-        },
-        {
-            name: 'Appam with Veg Stew',
-            description: 'Soft, lacy rice pancakes with spongy centers served with mild coconut milk vegetable stew.',
-            price: 110.00,
-            imageUrl: '/images/foods/breakfast/appam-stew.jpg',
-            rating: 4.8,
-            preparationTime: 15,
-            featured: false,
-            isVeg: true,
-            isBestseller: false,
-            isTrending: false,
-            isNew: true,
-            spiceLevel: null,
-            categoryId: categoriesMap['Breakfast'],
-        },
-        {
-            name: 'Idli Sambar (2 Pieces)',
-            description: 'Steamed fermented black lentils and rice cakes, served with piping hot vegetable sambar and coconut chutney.',
-            price: 60.00,
-            imageUrl: '/images/foods/breakfast/idli-sambar.jpg',
+            name: 'Samosa (Pack of 2)',
+            description: 'Crispy triangular pastry shells stuffed with seasoned potatoes, green peas, and mild spices.',
+            price: 40.00,
+            imageUrl: '/images/foods/snacks/samosa.jpg',
             rating: 4.6,
-            preparationTime: 10,
-            featured: false,
+            preparationTime: 5,
             isVeg: true,
             isBestseller: true,
-            isTrending: false,
-            isNew: false,
-            spiceLevel: null,
-            categoryId: categoriesMap['Breakfast'],
+            categoryId: categoriesMap['Snacks'],
+            restaurantId: restaurantMalabar.id,
         },
         {
-            name: 'Masala Dosa',
-            description: 'Thin crispy crepe made of fermented rice batter, stuffed with spiced potato mash. Served with chutneys.',
-            price: 110.00,
-            imageUrl: '/images/foods/south-indian/masala-dosa.jpg',
-            rating: 4.9,
-            preparationTime: 12,
+            name: 'Sweet Mango Lassi',
+            description: 'Creamy, rich yoghurt drink blended with ripe Alphonso mangoes and cardamom.',
+            price: 80.00,
+            imageUrl: '/images/foods/beverages/mango-lassi.jpg',
+            rating: 4.85,
+            preparationTime: 6,
             featured: true,
             isVeg: true,
             isBestseller: true,
-            isTrending: true,
-            isNew: false,
-            spiceLevel: 'Medium',
-            categoryId: categoriesMap['South Indian'],
-        },
-        {
-            name: 'Ghee Roast Dosa',
-            description: 'Paper-thin, golden crispy rice crepe roasted with premium cow ghee.',
-            price: 130.00,
-            imageUrl: '/images/foods/south-indian/ghee-roast-dosa.jpg',
-            rating: 4.75,
-            preparationTime: 10,
-            featured: false,
-            isVeg: true,
-            isBestseller: false,
-            isTrending: false,
-            isNew: true,
-            spiceLevel: 'Mild',
-            categoryId: categoriesMap['South Indian'],
-        },
-        {
-            name: 'Medu Vada (Pack of 2)',
-            description: 'Crispy, deep-fried doughnut shaped fritters made of urad dal batter. Served with sambar.',
-            price: 50.00,
-            imageUrl: '/images/foods/south-indian/medu-vada.jpg',
-            rating: 4.5,
-            preparationTime: 8,
-            featured: false,
-            isVeg: true,
-            isBestseller: false,
-            isTrending: false,
-            isNew: false,
-            spiceLevel: 'Mild',
-            categoryId: categoriesMap['South Indian'],
+            categoryId: categoriesMap['Beverages'],
+            restaurantId: restaurantMalabar.id,
         },
         {
             name: 'Butter Chicken Masala',
@@ -348,9 +333,8 @@ async function main() {
             isVeg: false,
             isBestseller: true,
             isTrending: true,
-            isNew: false,
-            spiceLevel: 'Medium',
             categoryId: categoriesMap['North Indian'],
+            restaurantId: restaurantPunjab.id,
         },
         {
             name: 'Paneer Butter Masala',
@@ -362,29 +346,12 @@ async function main() {
             featured: true,
             isVeg: true,
             isBestseller: true,
-            isTrending: false,
-            isNew: false,
-            spiceLevel: 'Medium',
             categoryId: categoriesMap['North Indian'],
-        },
-        {
-            name: 'Tandoori Chicken (Half)',
-            description: 'Chicken marinated in yogurt and Indian spices, roasted to a smoky finish in a clay tandoor oven.',
-            price: 260.00,
-            imageUrl: '/images/foods/north-indian/tandoori-chicken.jpg',
-            rating: 4.75,
-            preparationTime: 22,
-            featured: false,
-            isVeg: false,
-            isBestseller: false,
-            isTrending: true,
-            isNew: false,
-            spiceLevel: 'Hot',
-            categoryId: categoriesMap['North Indian'],
+            restaurantId: restaurantPunjab.id,
         },
         {
             name: 'Chole Bhature Combo',
-            description: 'Spicy chickpea curry served with two large, fluffy, deep-fried leavened flatbreads and pickle.',
+            description: 'Spicy chickpea curry served with two large, fluffy, deep-fried leavened flatbreads.',
             price: 150.00,
             imageUrl: '/images/foods/north-indian/chole-bhature.jpg',
             rating: 4.85,
@@ -393,99 +360,8 @@ async function main() {
             isVeg: true,
             isBestseller: true,
             isTrending: true,
-            isNew: false,
-            spiceLevel: 'Hot',
             categoryId: categoriesMap['North Indian'],
-        },
-        {
-            name: 'Classic Chicken Shawarma',
-            description: 'Shredded slow-grilled garlic chicken, french fries, and pickled cucumbers wrapped in rumali roti.',
-            price: 120.00,
-            imageUrl: '/images/foods/arabian/chicken-shawarma.jpg',
-            rating: 4.8,
-            preparationTime: 12,
-            featured: true,
-            isVeg: false,
-            isBestseller: true,
-            isTrending: false,
-            isNew: false,
-            spiceLevel: 'Medium',
-            categoryId: categoriesMap['Arabian'],
-        },
-        {
-            name: 'Al Faham Grilled Chicken',
-            description: 'Arabian-style charcoal-grilled chicken marinated with middle-eastern spices. Served with garlic paste.',
-            price: 250.00,
-            imageUrl: '/images/foods/arabian/al-faham.jpg',
-            rating: 4.85,
-            preparationTime: 20,
-            featured: false,
-            isVeg: false,
-            isBestseller: true,
-            isTrending: true,
-            isNew: false,
-            spiceLevel: 'Medium',
-            categoryId: categoriesMap['Arabian'],
-        },
-        {
-            name: 'Kuzhimanthi Chicken Rice',
-            description: 'Fragrant basmati rice cooked in an underground pit, served with soft chicken and tomato chutney.',
-            price: 270.00,
-            imageUrl: '/images/foods/arabian/kuzhimanthi.jpg',
-            rating: 4.9,
-            preparationTime: 20,
-            featured: true,
-            isVeg: false,
-            isBestseller: true,
-            isTrending: true,
-            isNew: false,
-            spiceLevel: 'Medium',
-            categoryId: categoriesMap['Arabian'],
-        },
-        {
-            name: 'Pav Bhaji',
-            description: 'Thick spicy vegetable mash topped with butter, served with two toasted soft pav bread rolls.',
-            price: 120.00,
-            imageUrl: '/images/foods/street-food/pav-bhaji.jpg',
-            rating: 4.7,
-            preparationTime: 12,
-            featured: false,
-            isVeg: true,
-            isBestseller: true,
-            isTrending: false,
-            isNew: false,
-            spiceLevel: 'Medium',
-            categoryId: categoriesMap['Street Food'],
-        },
-        {
-            name: 'Vada Pav (2 Pieces)',
-            description: 'The ultimate Mumbai street food. Deep-fried potato dumpling placed inside a soft bread bun with chutneys.',
-            price: 70.00,
-            imageUrl: '/images/foods/street-food/vada-pav.jpg',
-            rating: 4.8,
-            preparationTime: 8,
-            featured: false,
-            isVeg: true,
-            isBestseller: true,
-            isTrending: false,
-            isNew: false,
-            spiceLevel: 'Hot',
-            categoryId: categoriesMap['Street Food'],
-        },
-        {
-            name: 'Pani Puri (10 Pieces)',
-            description: 'Crispy hollow puris filled with potatoes, chickpeas, tamarind water, and spicy mint water.',
-            price: 80.00,
-            imageUrl: '/images/foods/street-food/pani-puri.jpg',
-            rating: 4.9,
-            preparationTime: 10,
-            featured: true,
-            isVeg: true,
-            isBestseller: false,
-            isTrending: true,
-            isNew: false,
-            spiceLevel: 'Hot',
-            categoryId: categoriesMap['Street Food'],
+            restaurantId: restaurantPunjab.id,
         },
         {
             name: 'Veg Schezwan Fried Rice',
@@ -494,13 +370,9 @@ async function main() {
             imageUrl: '/images/foods/chinese/schezwan-fried-rice.jpg',
             rating: 4.6,
             preparationTime: 15,
-            featured: false,
             isVeg: true,
-            isBestseller: false,
-            isTrending: false,
-            isNew: false,
-            spiceLevel: 'Hot',
             categoryId: categoriesMap['Indo-Chinese'],
+            restaurantId: restaurantChinatown.id,
         },
         {
             name: 'Chilli Chicken Dry',
@@ -513,130 +385,61 @@ async function main() {
             isVeg: false,
             isBestseller: true,
             isTrending: true,
-            isNew: false,
-            spiceLevel: 'Hot',
             categoryId: categoriesMap['Indo-Chinese'],
+            restaurantId: restaurantChinatown.id,
         },
         {
-            name: 'Samosa (Pack of 2)',
-            description: 'Crispy triangular pastry shells stuffed with seasoned potatoes, green peas, and mild spices.',
-            price: 40.00,
-            imageUrl: '/images/foods/snacks/samosa.jpg',
-            rating: 4.6,
-            preparationTime: 5,
-            featured: false,
-            isVeg: true,
-            isBestseller: true,
-            isTrending: false,
-            isNew: false,
-            spiceLevel: 'Medium',
-            categoryId: categoriesMap['Snacks'],
-        },
-        {
-            name: 'Kerala Pazham Pori (3 Pieces)',
-            description: 'Ripe plantain slices dipped in a sweet flour batter and deep-fried to a golden crispy finish.',
-            price: 40.00,
-            imageUrl: '/images/foods/snacks/pazham-pori.jpg',
-            rating: 4.8,
-            preparationTime: 8,
-            featured: false,
+            name: 'Masala Dosa',
+            description: 'Thin crispy crepe made of fermented rice batter, stuffed with spiced potato mash.',
+            price: 110.00,
+            imageUrl: '/images/foods/south-indian/masala-dosa.jpg',
+            rating: 4.9,
+            preparationTime: 12,
+            featured: true,
             isVeg: true,
             isBestseller: true,
             isTrending: true,
-            isNew: false,
-            spiceLevel: 'Mild',
-            categoryId: categoriesMap['Snacks'],
+            categoryId: categoriesMap['South Indian'],
+            restaurantId: restaurantUdipi.id,
         },
         {
-            name: 'Gulab Jamun (2 Pieces)',
-            description: 'Soft, spongy berry-sized milk solids soaked in cardamom flavored warm sugar syrup.',
+            name: 'Idli Sambar (2 Pieces)',
+            description: 'Steamed fermented black lentils and rice cakes, served with piping hot vegetable sambar.',
             price: 60.00,
-            imageUrl: '/images/foods/desserts/gulab-jamun.jpg',
-            rating: 4.9,
-            preparationTime: 5,
-            featured: true,
-            isVeg: true,
-            isBestseller: true,
-            isTrending: false,
-            isNew: false,
-            spiceLevel: null,
-            categoryId: categoriesMap['Desserts'],
-        },
-        {
-            name: 'Creamy Rasmalai (2 Pieces)',
-            description: 'Flattened cottage cheese patties soaked in thickened, saffron-infused sweet milk. Served cold.',
-            price: 80.00,
-            imageUrl: '/images/foods/desserts/rasmalai.jpg',
-            rating: 4.85,
-            preparationTime: 5,
-            featured: false,
-            isVeg: true,
-            isBestseller: false,
-            isTrending: true,
-            isNew: false,
-            spiceLevel: null,
-            categoryId: categoriesMap['Desserts'],
-        },
-        {
-            name: 'Royal Falooda',
-            description: 'Refreshing dessert drink with vermicelli, sweet basil seeds, rose syrup, cold milk, and vanilla ice cream.',
-            price: 140.00,
-            imageUrl: '/images/foods/desserts/falooda.jpg',
-            rating: 4.9,
-            preparationTime: 8,
-            featured: true,
-            isVeg: true,
-            isBestseller: true,
-            isTrending: true,
-            isNew: false,
-            spiceLevel: null,
-            categoryId: categoriesMap['Desserts'],
-        },
-        {
-            name: 'Sweet Mango Lassi',
-            description: 'Creamy, rich yoghurt drink blended with ripe Alphonso mangoes and cardamom.',
-            price: 80.00,
-            imageUrl: '/images/foods/beverages/mango-lassi.jpg',
-            rating: 4.85,
-            preparationTime: 6,
-            featured: true,
-            isVeg: true,
-            isBestseller: true,
-            isTrending: false,
-            isNew: false,
-            spiceLevel: null,
-            categoryId: categoriesMap['Beverages'],
-        },
-        {
-            name: 'Fresh Mint Lime Cooler',
-            description: 'Refreshing cold lime juice squeezed with fresh mint, ginger, and soda water.',
-            price: 50.00,
-            imageUrl: '/images/foods/beverages/mint-lime-cooler.jpg',
+            imageUrl: '/images/foods/breakfast/idli-sambar.jpg',
             rating: 4.6,
-            preparationTime: 5,
-            featured: false,
-            isVeg: true,
-            isBestseller: false,
-            isTrending: false,
-            isNew: false,
-            spiceLevel: null,
-            categoryId: categoriesMap['Beverages'],
-        },
-        {
-            name: 'Nadan Masala Chai',
-            description: 'Traditional Indian tea brewed with cardamom, ginger, cloves, and milk.',
-            price: 30.00,
-            imageUrl: '/images/foods/beverages/masala-chai.jpg',
-            rating: 4.9,
-            preparationTime: 7,
-            featured: true,
+            preparationTime: 10,
             isVeg: true,
             isBestseller: true,
-            isTrending: false,
-            isNew: false,
-            spiceLevel: null,
-            categoryId: categoriesMap['Beverages'],
+            categoryId: categoriesMap['Breakfast'],
+            restaurantId: restaurantUdipi.id,
         },
+        {
+            name: 'Classic Chicken Shawarma',
+            description: 'Shredded slow-grilled garlic chicken, french fries, and pickled cucumbers wrapped in rumali roti.',
+            price: 120.00,
+            imageUrl: '/images/foods/arabian/chicken-shawarma.jpg',
+            rating: 4.8,
+            preparationTime: 12,
+            featured: true,
+            isVeg: false,
+            isBestseller: true,
+            categoryId: categoriesMap['Arabian'],
+            restaurantId: restaurantArabian.id,
+        },
+        {
+            name: 'Al Faham Grilled Chicken',
+            description: 'Arabian-style charcoal-grilled chicken marinated with middle-eastern spices.',
+            price: 250.00,
+            imageUrl: '/images/foods/arabian/al-faham.jpg',
+            rating: 4.85,
+            preparationTime: 20,
+            isVeg: false,
+            isBestseller: true,
+            isTrending: true,
+            categoryId: categoriesMap['Arabian'],
+            restaurantId: restaurantArabian.id,
+        }
     ];
     const seededFoods = [];
     for (const food of foodsData) {
@@ -645,13 +448,12 @@ async function main() {
         });
         seededFoods.push(createdFood);
     }
-    console.log(`Seeded ${seededFoods.length} Indian food items.`);
+    console.log(`Seeded ${seededFoods.length} multi-vendor Food Items.`);
     const couponsData = [
-        { code: 'WELCOME100', discount: 100.00, isActive: true },
-        { code: 'BIRYANI50', discount: 50.00, isActive: true },
-        { code: 'FIRSTORDER', discount: 150.00, isActive: true },
-        { code: 'KERALA20', discount: 0.20, isActive: true },
-        { code: 'FOODFLOW100', discount: 100.00, isActive: true },
+        { code: 'WELCOME100', discount: 100.00, isActive: true, restaurantId: null },
+        { code: 'FIRSTORDER', discount: 150.00, isActive: true, restaurantId: null },
+        { code: 'MALABAR50', discount: 50.00, isActive: true, restaurantId: restaurantMalabar.id },
+        { code: 'PUNJAB30', discount: 0.30, isActive: true, restaurantId: restaurantPunjab.id },
     ];
     const seededCoupons = [];
     for (const c of couponsData) {
@@ -661,11 +463,12 @@ async function main() {
                 discount: c.discount,
                 expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
                 isActive: c.isActive,
+                restaurantId: c.restaurantId,
             },
         });
         seededCoupons.push(createdCoupon);
     }
-    console.log('Coupons seeded.');
+    console.log('Seeded multi-vendor coupons.');
     const orderStatuses = [
         client_1.OrderStatus.DELIVERED,
         client_1.OrderStatus.DELIVERED,
@@ -675,78 +478,148 @@ async function main() {
         client_1.OrderStatus.PENDING,
         client_1.OrderStatus.OUT_FOR_DELIVERY,
     ];
-    for (let i = 1; i <= 20; i++) {
-        const custIndex = i % seededCustomers.length;
-        const customer = seededCustomers[custIndex];
+    const malabarFoods = seededFoods.filter(f => f.restaurantId === restaurantMalabar.id);
+    const punjabFoods = seededFoods.filter(f => f.restaurantId === restaurantPunjab.id);
+    for (let i = 1; i <= 15; i++) {
+        const customer = seededCustomers[i % seededCustomers.length];
         const customerAddress = seededAddresses.find(a => a.userId === customer.id) || seededAddresses[0];
         const status = orderStatuses[i % orderStatuses.length];
-        const food1 = seededFoods[(i * 3) % seededFoods.length];
-        const food2 = seededFoods[(i * 7) % seededFoods.length];
+        const food1 = malabarFoods[i % malabarFoods.length];
+        const food2 = malabarFoods[(i + 1) % malabarFoods.length];
         const price1 = parseFloat(food1.price.toString());
         const price2 = parseFloat(food2.price.toString());
         const subtotal = (price1 * 2) + price2;
         const tax = subtotal * 0.08;
-        const discount = i % 4 === 0 ? 50.00 : 0.00;
+        const discount = i % 3 === 0 ? 50.00 : 0.00;
         const total = Math.max(0, subtotal + tax - discount);
-        await prisma.order.create({
+        const createdOrder = await prisma.order.create({
             data: {
                 userId: customer.id,
                 addressId: customerAddress.id,
+                restaurantId: restaurantMalabar.id,
                 total,
                 tax,
                 discount,
-                couponId: i % 4 === 0 ? seededCoupons[1].id : null,
+                couponId: i % 3 === 0 ? seededCoupons[2].id : null,
                 status,
-                createdAt: new Date(Date.now() - (i * 4 * 60 * 60 * 1000)),
+                paymentStatus: status !== client_1.OrderStatus.PENDING ? 'PAID' : 'PENDING',
+                createdAt: new Date(Date.now() - (i * 6 * 60 * 60 * 1000)),
                 items: {
                     create: [
-                        {
-                            foodId: food1.id,
-                            price: food1.price,
-                            quantity: 2,
-                        },
-                        {
-                            foodId: food2.id,
-                            price: food2.price,
-                            quantity: 1,
-                        },
+                        { foodId: food1.id, price: food1.price, quantity: 2 },
+                        { foodId: food2.id, price: food2.price, quantity: 1 },
                     ],
                 },
             },
         });
+        if (status !== client_1.OrderStatus.PENDING) {
+            const payId = `pay_mock_${createdOrder.id.substring(0, 8)}`;
+            const ordId = `order_mock_${createdOrder.id.substring(0, 8)}`;
+            await prisma.payment.create({
+                data: {
+                    orderId: createdOrder.id,
+                    razorpayOrderId: ordId,
+                    razorpayPaymentId: payId,
+                    amount: total,
+                    status: 'SUCCESS',
+                    createdAt: createdOrder.createdAt,
+                },
+            });
+            await prisma.invoice.create({
+                data: {
+                    invoiceNumber: `INV-${new Date().getFullYear()}-${1000 + i}`,
+                    orderId: createdOrder.id,
+                    customerId: customer.id,
+                    pdfUrl: `/public/invoices/invoice-mock-${createdOrder.id}.pdf`,
+                    createdAt: createdOrder.createdAt,
+                },
+            });
+        }
     }
-    console.log('20 Sample orders in INR seeded successfully.');
+    for (let i = 1; i <= 5; i++) {
+        const customer = seededCustomers[(i + 3) % seededCustomers.length];
+        const customerAddress = seededAddresses.find(a => a.userId === customer.id) || seededAddresses[0];
+        const status = orderStatuses[i % orderStatuses.length];
+        const food1 = punjabFoods[i % punjabFoods.length];
+        const food2 = punjabFoods[(i + 1) % punjabFoods.length];
+        const price1 = parseFloat(food1.price.toString());
+        const price2 = parseFloat(food2.price.toString());
+        const subtotal = price1 + price2;
+        const tax = subtotal * 0.08;
+        const total = subtotal + tax;
+        const createdOrder = await prisma.order.create({
+            data: {
+                userId: customer.id,
+                addressId: customerAddress.id,
+                restaurantId: restaurantPunjab.id,
+                total,
+                tax,
+                discount: 0,
+                status,
+                paymentStatus: status !== client_1.OrderStatus.PENDING ? 'PAID' : 'PENDING',
+                createdAt: new Date(Date.now() - (i * 12 * 60 * 60 * 1000)),
+                items: {
+                    create: [
+                        { foodId: food1.id, price: food1.price, quantity: 1 },
+                        { foodId: food2.id, price: food2.price, quantity: 1 },
+                    ],
+                },
+            },
+        });
+        if (status !== client_1.OrderStatus.PENDING) {
+            const payId = `pay_mock_punjab_${createdOrder.id.substring(0, 8)}`;
+            const ordId = `order_mock_punjab_${createdOrder.id.substring(0, 8)}`;
+            await prisma.payment.create({
+                data: {
+                    orderId: createdOrder.id,
+                    razorpayOrderId: ordId,
+                    razorpayPaymentId: payId,
+                    amount: total,
+                    status: 'SUCCESS',
+                    createdAt: createdOrder.createdAt,
+                },
+            });
+            await prisma.invoice.create({
+                data: {
+                    invoiceNumber: `INV-PUNJ-${new Date().getFullYear()}-${1000 + i}`,
+                    orderId: createdOrder.id,
+                    customerId: customer.id,
+                    pdfUrl: `/public/invoices/invoice-mock-${createdOrder.id}.pdf`,
+                    createdAt: createdOrder.createdAt,
+                },
+            });
+        }
+    }
+    console.log('Seeded 20 tenant-isolated orders and invoices.');
     const reviewsData = [
         {
             rating: 5,
-            comment: "Absolutely outstanding Malabar biryani! The chicken is extremely tender and the rice is loaded with flavor.",
+            comment: "Absolutely outstanding Malabar biryani! The chicken is extremely tender.",
             userEmail: "customer@foodflow.com",
             foodName: "Malabar Chicken Biryani",
+            restaurantId: restaurantMalabar.id,
         },
         {
             rating: 4,
             comment: "Very delicious and aromatic, but a bit too spicy for my taste.",
             userEmail: "arjun.mehta@gmail.com",
             foodName: "Malabar Chicken Biryani",
+            restaurantId: restaurantMalabar.id,
         },
         {
             rating: 5,
-            comment: "Classic Kerala taste! Highly recommend this nadan beef fry with some hot porottas.",
+            comment: "Classic Kerala taste! Highly recommend this nadan beef fry.",
             userEmail: "customer@foodflow.com",
             foodName: "Kerala Beef Fry (Nadan)",
+            restaurantId: restaurantMalabar.id,
         },
         {
             rating: 5,
             comment: "Creamy, rich, and delicious! Goes perfectly with Butter Naan.",
             userEmail: "priya.sharma@yahoo.com",
             foodName: "Butter Chicken Masala",
-        },
-        {
-            rating: 3,
-            comment: "Average taste, expected a bit more creaminess.",
-            userEmail: "rahul.k@outlook.com",
-            foodName: "Butter Chicken Masala",
-        },
+            restaurantId: restaurantPunjab.id,
+        }
     ];
     for (const rev of reviewsData) {
         const dbUser = seededCustomers.find(u => u.email === rev.userEmail);
@@ -758,17 +631,18 @@ async function main() {
                     comment: rev.comment,
                     userId: dbUser.id,
                     foodId: dbFood.id,
+                    restaurantId: rev.restaurantId,
                 },
             });
         }
     }
-    console.log('Sample reviews seeded successfully.');
+    console.log('Seeded food & restaurant reviews.');
     await prisma.auditLog.create({
         data: {
-            action: 'SEED_DATABASE_INDIA_3.3',
+            action: 'SEED_DATABASE_MULTI_VENDOR',
             performedBy: 'system',
             entityType: 'SYSTEM',
-            entityId: '3.3',
+            entityId: '3.0',
         },
     });
     console.log('Seeding completed successfully!');

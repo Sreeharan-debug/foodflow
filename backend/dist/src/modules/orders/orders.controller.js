@@ -30,14 +30,14 @@ let OrdersController = class OrdersController {
     async checkout(userId, checkoutDto) {
         return this.ordersService.checkout(userId, checkoutDto);
     }
-    async getOrders(userId, role) {
-        return this.ordersService.findAll(userId, role);
+    async getOrders(user) {
+        return this.ordersService.findAll(user.id, user.role, user.restaurant?.id);
     }
-    async getOrderById(userId, role, id) {
-        return this.ordersService.findOne(userId, role, id);
+    async getOrderById(user, id) {
+        return this.ordersService.findOne(user.id, user.role, id, user.restaurant?.id);
     }
-    async updateOrderStatus(id, updateOrderStatusDto, adminEmail) {
-        return this.ordersService.updateStatus(id, updateOrderStatusDto, adminEmail);
+    async updateOrderStatus(id, updateOrderStatusDto, adminUser) {
+        return this.ordersService.updateStatus(id, updateOrderStatusDto, adminUser.email, adminUser.restaurant?.id);
     }
 };
 exports.OrdersController = OrdersController;
@@ -51,19 +51,17 @@ __decorate([
 ], OrdersController.prototype, "checkout", null);
 __decorate([
     (0, common_1.Get)(),
-    __param(0, (0, current_user_decorator_1.CurrentUser)('id')),
-    __param(1, (0, current_user_decorator_1.CurrentUser)('role')),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], OrdersController.prototype, "getOrders", null);
 __decorate([
     (0, common_1.Get)(':id'),
-    __param(0, (0, current_user_decorator_1.CurrentUser)('id')),
-    __param(1, (0, current_user_decorator_1.CurrentUser)('role')),
-    __param(2, (0, common_1.Param)('id')),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", Promise)
 ], OrdersController.prototype, "getOrderById", null);
 __decorate([
@@ -72,9 +70,9 @@ __decorate([
     (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
-    __param(2, (0, current_user_decorator_1.CurrentUser)('email')),
+    __param(2, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, order_dto_1.UpdateOrderStatusDto, String]),
+    __metadata("design:paramtypes", [String, order_dto_1.UpdateOrderStatusDto, Object]),
     __metadata("design:returntype", Promise)
 ], OrdersController.prototype, "updateOrderStatus", null);
 exports.OrdersController = OrdersController = __decorate([

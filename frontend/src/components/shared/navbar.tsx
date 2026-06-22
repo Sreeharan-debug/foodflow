@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/providers/auth-provider';
 import { useCart } from '@/providers/cart-provider';
 import { useTheme } from '@/providers/theme-provider';
-import { ShoppingBag, Sun, Moon, User, LogOut, Menu, X, LayoutDashboard, Compass, ReceiptText, ShieldAlert } from 'lucide-react';
+import { ShoppingBag, Sun, Moon, User, LogOut, Menu, X, LayoutDashboard, Compass, ReceiptText, ShieldAlert, Store } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getFirstName } from '@/utils/name';
 
@@ -58,6 +58,7 @@ export default function Navbar() {
 
   const customerLinks: LinkItem[] = [
     { name: 'Menu', href: '/customer/menu', icon: Compass },
+    { name: 'Kitchens', href: '/customer/restaurants', icon: Store },
     { name: 'My Orders', href: '/customer/orders', icon: ReceiptText },
     { name: 'About Project', href: '/about-project' },
   ];
@@ -72,8 +73,15 @@ export default function Navbar() {
     { name: 'About Project', href: '/about-project' },
   ];
 
+  const superAdminLinks: LinkItem[] = [
+    { name: 'Control Panel', href: '/super-admin/dashboard', icon: LayoutDashboard },
+    { name: 'About Project', href: '/about-project' },
+  ];
+
   const links = !isAuthenticated
     ? guestLinks
+    : user?.role === 'SUPER_ADMIN'
+    ? superAdminLinks
     : user?.role === 'ADMIN'
     ? adminLinks
     : customerLinks;
@@ -152,7 +160,13 @@ export default function Navbar() {
               {isAuthenticated ? (
                 <div className="flex items-center space-x-3">
                   <Link
-                    href={user?.role === 'ADMIN' ? '/admin/dashboard' : '/customer/profile'}
+                    href={
+                      user?.role === 'SUPER_ADMIN'
+                        ? '/super-admin/dashboard'
+                        : user?.role === 'ADMIN'
+                        ? '/admin/dashboard'
+                        : '/customer/profile'
+                    }
                     className="flex items-center space-x-2 text-sm text-muted-foreground hover:text-foreground"
                   >
                     {user?.profileImage ? (
@@ -164,11 +178,15 @@ export default function Navbar() {
                     )}
                     <div className="flex flex-col items-start leading-tight">
                       <span className="font-semibold text-xs text-foreground">{getGreeting(user?.name || '')}</span>
-                      {user?.role === 'ADMIN' && (
+                      {user?.role === 'SUPER_ADMIN' ? (
+                        <span className="mt-0.5 bg-purple-500/15 text-purple-400 border border-purple-500/20 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider scale-90 -translate-x-1">
+                          Super Admin
+                        </span>
+                      ) : user?.role === 'ADMIN' ? (
                         <span className="mt-0.5 bg-red-500/15 text-red-400 border border-red-500/20 text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider scale-90 -translate-x-1">
                           Admin
                         </span>
-                      )}
+                      ) : null}
                     </div>
                   </Link>
                   <button

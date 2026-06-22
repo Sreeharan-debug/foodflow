@@ -1,6 +1,5 @@
 import { OrdersService } from './orders.service';
 import { CheckoutDto, UpdateOrderStatusDto } from './dto/order.dto';
-import { Role } from '@prisma/client';
 export declare class OrdersController {
     private readonly ordersService;
     constructor(ordersService: OrdersService);
@@ -10,6 +9,21 @@ export declare class OrdersController {
                 id: string;
                 email: string;
                 name: string;
+            };
+            address: {
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                label: string;
+                houseNumber: string;
+                buildingName: string | null;
+                area: string;
+                landmark: string | null;
+                city: string;
+                district: string;
+                state: string;
+                pincode: string;
+                userId: string;
             };
             items: ({
                 food: {
@@ -30,37 +44,24 @@ export declare class OrdersController {
                     isNew: boolean;
                     spiceLevel: string | null;
                     categoryId: string;
+                    restaurantId: string | null;
                 };
             } & {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
-                price: import("@prisma/client/runtime/library").Decimal;
-                quantity: number;
                 foodId: string;
+                quantity: number;
+                price: import("@prisma/client/runtime/library").Decimal;
                 orderId: string;
             })[];
-            address: {
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                userId: string;
-                label: string;
-                houseNumber: string;
-                buildingName: string | null;
-                area: string;
-                landmark: string | null;
-                city: string;
-                district: string;
-                state: string;
-                pincode: string;
-            };
         } & {
             id: string;
             status: import(".prisma/client").$Enums.OrderStatus;
             createdAt: Date;
             updatedAt: Date;
             userId: string;
+            restaurantId: string | null;
             discount: import("@prisma/client/runtime/library").Decimal;
             total: import("@prisma/client/runtime/library").Decimal;
             tax: import("@prisma/client/runtime/library").Decimal;
@@ -75,7 +76,22 @@ export declare class OrdersController {
             receipt: string | undefined;
         };
     }>;
-    getOrders(userId: string, role: Role): Promise<({
+    getOrders(user: any): Promise<({
+        address: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            label: string;
+            houseNumber: string;
+            buildingName: string | null;
+            area: string;
+            landmark: string | null;
+            city: string;
+            district: string;
+            state: string;
+            pincode: string;
+            userId: string;
+        };
         items: ({
             food: {
                 id: string;
@@ -95,37 +111,24 @@ export declare class OrdersController {
                 isNew: boolean;
                 spiceLevel: string | null;
                 categoryId: string;
+                restaurantId: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            price: import("@prisma/client/runtime/library").Decimal;
-            quantity: number;
             foodId: string;
+            quantity: number;
+            price: import("@prisma/client/runtime/library").Decimal;
             orderId: string;
         })[];
-        address: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            userId: string;
-            label: string;
-            houseNumber: string;
-            buildingName: string | null;
-            area: string;
-            landmark: string | null;
-            city: string;
-            district: string;
-            state: string;
-            pincode: string;
-        };
     } & {
         id: string;
         status: import(".prisma/client").$Enums.OrderStatus;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
+        restaurantId: string | null;
         discount: import("@prisma/client/runtime/library").Decimal;
         total: import("@prisma/client/runtime/library").Decimal;
         tax: import("@prisma/client/runtime/library").Decimal;
@@ -133,11 +136,26 @@ export declare class OrdersController {
         couponId: string | null;
         addressId: string;
     })[]>;
-    getOrderById(userId: string, role: Role, id: string): Promise<{
+    getOrderById(user: any, id: string): Promise<{
         user: {
             id: string;
             email: string;
             name: string;
+        };
+        address: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            label: string;
+            houseNumber: string;
+            buildingName: string | null;
+            area: string;
+            landmark: string | null;
+            city: string;
+            district: string;
+            state: string;
+            pincode: string;
+            userId: string;
         };
         items: ({
             food: {
@@ -158,37 +176,24 @@ export declare class OrdersController {
                 isNew: boolean;
                 spiceLevel: string | null;
                 categoryId: string;
+                restaurantId: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            price: import("@prisma/client/runtime/library").Decimal;
-            quantity: number;
             foodId: string;
+            quantity: number;
+            price: import("@prisma/client/runtime/library").Decimal;
             orderId: string;
         })[];
-        address: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            userId: string;
-            label: string;
-            houseNumber: string;
-            buildingName: string | null;
-            area: string;
-            landmark: string | null;
-            city: string;
-            district: string;
-            state: string;
-            pincode: string;
-        };
     } & {
         id: string;
         status: import(".prisma/client").$Enums.OrderStatus;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
+        restaurantId: string | null;
         discount: import("@prisma/client/runtime/library").Decimal;
         total: import("@prisma/client/runtime/library").Decimal;
         tax: import("@prisma/client/runtime/library").Decimal;
@@ -196,11 +201,26 @@ export declare class OrdersController {
         couponId: string | null;
         addressId: string;
     }>;
-    updateOrderStatus(id: string, updateOrderStatusDto: UpdateOrderStatusDto, adminEmail: string): Promise<{
+    updateOrderStatus(id: string, updateOrderStatusDto: UpdateOrderStatusDto, adminUser: any): Promise<{
         user: {
             id: string;
             email: string;
             name: string;
+        };
+        address: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            label: string;
+            houseNumber: string;
+            buildingName: string | null;
+            area: string;
+            landmark: string | null;
+            city: string;
+            district: string;
+            state: string;
+            pincode: string;
+            userId: string;
         };
         items: ({
             food: {
@@ -221,37 +241,24 @@ export declare class OrdersController {
                 isNew: boolean;
                 spiceLevel: string | null;
                 categoryId: string;
+                restaurantId: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            price: import("@prisma/client/runtime/library").Decimal;
-            quantity: number;
             foodId: string;
+            quantity: number;
+            price: import("@prisma/client/runtime/library").Decimal;
             orderId: string;
         })[];
-        address: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            userId: string;
-            label: string;
-            houseNumber: string;
-            buildingName: string | null;
-            area: string;
-            landmark: string | null;
-            city: string;
-            district: string;
-            state: string;
-            pincode: string;
-        };
     } & {
         id: string;
         status: import(".prisma/client").$Enums.OrderStatus;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
+        restaurantId: string | null;
         discount: import("@prisma/client/runtime/library").Decimal;
         total: import("@prisma/client/runtime/library").Decimal;
         tax: import("@prisma/client/runtime/library").Decimal;

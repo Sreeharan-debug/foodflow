@@ -7,48 +7,53 @@ export declare class CouponsController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        restaurantId: string | null;
         code: string;
         discount: import("@prisma/client/runtime/library").Decimal;
         expiresAt: Date;
         isActive: boolean;
     }>;
-    getCoupons(): Promise<{
+    getCoupons(adminUser: any): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        restaurantId: string | null;
         code: string;
         discount: import("@prisma/client/runtime/library").Decimal;
         expiresAt: Date;
         isActive: boolean;
     }[]>;
-    getCouponById(id: string): Promise<{
+    getCouponById(id: string, adminUser: any): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        restaurantId: string | null;
         code: string;
         discount: import("@prisma/client/runtime/library").Decimal;
         expiresAt: Date;
         isActive: boolean;
     }>;
-    createCoupon(createCouponDto: CreateCouponDto, adminEmail: string): Promise<{
+    createCoupon(createCouponDto: CreateCouponDto, adminUser: any): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        restaurantId: string | null;
         code: string;
         discount: import("@prisma/client/runtime/library").Decimal;
         expiresAt: Date;
         isActive: boolean;
     }>;
-    updateCoupon(id: string, updateCouponDto: UpdateCouponDto, adminEmail: string): Promise<{
+    updateCoupon(id: string, updateCouponDto: UpdateCouponDto, adminUser: any): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        restaurantId: string | null;
         code: string;
         discount: import("@prisma/client/runtime/library").Decimal;
         expiresAt: Date;
         isActive: boolean;
     }>;
-    deleteCoupon(id: string, adminEmail: string): Promise<{
+    deleteCoupon(id: string, adminUser: any): Promise<{
         message: string;
     }>;
 }

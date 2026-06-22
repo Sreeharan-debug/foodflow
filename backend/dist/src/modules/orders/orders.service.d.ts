@@ -17,6 +17,21 @@ export declare class OrdersService {
                 email: string;
                 name: string;
             };
+            address: {
+                id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                label: string;
+                houseNumber: string;
+                buildingName: string | null;
+                area: string;
+                landmark: string | null;
+                city: string;
+                district: string;
+                state: string;
+                pincode: string;
+                userId: string;
+            };
             items: ({
                 food: {
                     id: string;
@@ -36,37 +51,24 @@ export declare class OrdersService {
                     isNew: boolean;
                     spiceLevel: string | null;
                     categoryId: string;
+                    restaurantId: string | null;
                 };
             } & {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
-                price: Prisma.Decimal;
-                quantity: number;
                 foodId: string;
+                quantity: number;
+                price: Prisma.Decimal;
                 orderId: string;
             })[];
-            address: {
-                id: string;
-                createdAt: Date;
-                updatedAt: Date;
-                userId: string;
-                label: string;
-                houseNumber: string;
-                buildingName: string | null;
-                area: string;
-                landmark: string | null;
-                city: string;
-                district: string;
-                state: string;
-                pincode: string;
-            };
         } & {
             id: string;
             status: import(".prisma/client").$Enums.OrderStatus;
             createdAt: Date;
             updatedAt: Date;
             userId: string;
+            restaurantId: string | null;
             discount: Prisma.Decimal;
             total: Prisma.Decimal;
             tax: Prisma.Decimal;
@@ -81,7 +83,22 @@ export declare class OrdersService {
             receipt: string | undefined;
         };
     }>;
-    findAll(userId: string, role: Role): Promise<({
+    findAll(userId: string, role: Role, restaurantId?: string): Promise<({
+        address: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            label: string;
+            houseNumber: string;
+            buildingName: string | null;
+            area: string;
+            landmark: string | null;
+            city: string;
+            district: string;
+            state: string;
+            pincode: string;
+            userId: string;
+        };
         items: ({
             food: {
                 id: string;
@@ -101,37 +118,24 @@ export declare class OrdersService {
                 isNew: boolean;
                 spiceLevel: string | null;
                 categoryId: string;
+                restaurantId: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            price: Prisma.Decimal;
-            quantity: number;
             foodId: string;
+            quantity: number;
+            price: Prisma.Decimal;
             orderId: string;
         })[];
-        address: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            userId: string;
-            label: string;
-            houseNumber: string;
-            buildingName: string | null;
-            area: string;
-            landmark: string | null;
-            city: string;
-            district: string;
-            state: string;
-            pincode: string;
-        };
     } & {
         id: string;
         status: import(".prisma/client").$Enums.OrderStatus;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
+        restaurantId: string | null;
         discount: Prisma.Decimal;
         total: Prisma.Decimal;
         tax: Prisma.Decimal;
@@ -139,11 +143,26 @@ export declare class OrdersService {
         couponId: string | null;
         addressId: string;
     })[]>;
-    findOne(userId: string, role: Role, orderId: string): Promise<{
+    findOne(userId: string, role: Role, orderId: string, restaurantId?: string): Promise<{
         user: {
             id: string;
             email: string;
             name: string;
+        };
+        address: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            label: string;
+            houseNumber: string;
+            buildingName: string | null;
+            area: string;
+            landmark: string | null;
+            city: string;
+            district: string;
+            state: string;
+            pincode: string;
+            userId: string;
         };
         items: ({
             food: {
@@ -164,37 +183,24 @@ export declare class OrdersService {
                 isNew: boolean;
                 spiceLevel: string | null;
                 categoryId: string;
+                restaurantId: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            price: Prisma.Decimal;
-            quantity: number;
             foodId: string;
+            quantity: number;
+            price: Prisma.Decimal;
             orderId: string;
         })[];
-        address: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            userId: string;
-            label: string;
-            houseNumber: string;
-            buildingName: string | null;
-            area: string;
-            landmark: string | null;
-            city: string;
-            district: string;
-            state: string;
-            pincode: string;
-        };
     } & {
         id: string;
         status: import(".prisma/client").$Enums.OrderStatus;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
+        restaurantId: string | null;
         discount: Prisma.Decimal;
         total: Prisma.Decimal;
         tax: Prisma.Decimal;
@@ -202,11 +208,26 @@ export declare class OrdersService {
         couponId: string | null;
         addressId: string;
     }>;
-    updateStatus(orderId: string, updateOrderStatusDto: UpdateOrderStatusDto, performedBy: string): Promise<{
+    updateStatus(orderId: string, updateOrderStatusDto: UpdateOrderStatusDto, performedBy: string, restaurantId?: string): Promise<{
         user: {
             id: string;
             email: string;
             name: string;
+        };
+        address: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            label: string;
+            houseNumber: string;
+            buildingName: string | null;
+            area: string;
+            landmark: string | null;
+            city: string;
+            district: string;
+            state: string;
+            pincode: string;
+            userId: string;
         };
         items: ({
             food: {
@@ -227,37 +248,24 @@ export declare class OrdersService {
                 isNew: boolean;
                 spiceLevel: string | null;
                 categoryId: string;
+                restaurantId: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            price: Prisma.Decimal;
-            quantity: number;
             foodId: string;
+            quantity: number;
+            price: Prisma.Decimal;
             orderId: string;
         })[];
-        address: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
-            userId: string;
-            label: string;
-            houseNumber: string;
-            buildingName: string | null;
-            area: string;
-            landmark: string | null;
-            city: string;
-            district: string;
-            state: string;
-            pincode: string;
-        };
     } & {
         id: string;
         status: import(".prisma/client").$Enums.OrderStatus;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
+        restaurantId: string | null;
         discount: Prisma.Decimal;
         total: Prisma.Decimal;
         tax: Prisma.Decimal;

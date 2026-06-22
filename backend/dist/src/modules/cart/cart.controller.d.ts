@@ -7,9 +7,9 @@ export declare class CartController {
         items: ({
             food: {
                 id: string;
-                name: string;
                 createdAt: Date;
                 updatedAt: Date;
+                name: string;
                 description: string;
                 price: import("@prisma/client/runtime/library").Decimal;
                 imageUrl: string;
@@ -23,28 +23,29 @@ export declare class CartController {
                 isNew: boolean;
                 spiceLevel: string | null;
                 categoryId: string;
+                restaurantId: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            quantity: number;
-            foodId: string;
             cartId: string;
+            foodId: string;
+            quantity: number;
         })[];
     } & {
         id: string;
+        userId: string;
         createdAt: Date;
         updatedAt: Date;
-        userId: string;
     }>;
     addItemToCart(userId: string, addToCartDto: AddToCartDto): Promise<{
         items: ({
             food: {
                 id: string;
-                name: string;
                 createdAt: Date;
                 updatedAt: Date;
+                name: string;
                 description: string;
                 price: import("@prisma/client/runtime/library").Decimal;
                 imageUrl: string;
@@ -58,28 +59,29 @@ export declare class CartController {
                 isNew: boolean;
                 spiceLevel: string | null;
                 categoryId: string;
+                restaurantId: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            quantity: number;
-            foodId: string;
             cartId: string;
+            foodId: string;
+            quantity: number;
         })[];
     } & {
         id: string;
+        userId: string;
         createdAt: Date;
         updatedAt: Date;
-        userId: string;
     }>;
     updateCartItem(userId: string, cartItemId: string, updateCartItemDto: UpdateCartItemDto): Promise<{
         items: ({
             food: {
                 id: string;
-                name: string;
                 createdAt: Date;
                 updatedAt: Date;
+                name: string;
                 description: string;
                 price: import("@prisma/client/runtime/library").Decimal;
                 imageUrl: string;
@@ -93,28 +95,29 @@ export declare class CartController {
                 isNew: boolean;
                 spiceLevel: string | null;
                 categoryId: string;
+                restaurantId: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            quantity: number;
-            foodId: string;
             cartId: string;
+            foodId: string;
+            quantity: number;
         })[];
     } & {
         id: string;
+        userId: string;
         createdAt: Date;
         updatedAt: Date;
-        userId: string;
     }>;
     removeCartItem(userId: string, cartItemId: string): Promise<{
         items: ({
             food: {
                 id: string;
-                name: string;
                 createdAt: Date;
                 updatedAt: Date;
+                name: string;
                 description: string;
                 price: import("@prisma/client/runtime/library").Decimal;
                 imageUrl: string;
@@ -128,28 +131,29 @@ export declare class CartController {
                 isNew: boolean;
                 spiceLevel: string | null;
                 categoryId: string;
+                restaurantId: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            quantity: number;
-            foodId: string;
             cartId: string;
+            foodId: string;
+            quantity: number;
         })[];
     } & {
         id: string;
+        userId: string;
         createdAt: Date;
         updatedAt: Date;
-        userId: string;
     }>;
     clearMyCart(userId: string): Promise<{
         items: ({
             food: {
                 id: string;
-                name: string;
                 createdAt: Date;
                 updatedAt: Date;
+                name: string;
                 description: string;
                 price: import("@prisma/client/runtime/library").Decimal;
                 imageUrl: string;
@@ -163,19 +167,20 @@ export declare class CartController {
                 isNew: boolean;
                 spiceLevel: string | null;
                 categoryId: string;
+                restaurantId: string | null;
             };
         } & {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            quantity: number;
-            foodId: string;
             cartId: string;
+            foodId: string;
+            quantity: number;
         })[];
     } & {
         id: string;
+        userId: string;
         createdAt: Date;
         updatedAt: Date;
-        userId: string;
     }>;
 }

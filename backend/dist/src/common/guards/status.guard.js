@@ -11,9 +11,32 @@ const common_1 = require("@nestjs/common");
 const client_1 = require("@prisma/client");
 let StatusGuard = class StatusGuard {
     canActivate(context) {
-        const { user } = context.switchToHttp().getRequest();
-        if (user && user.status === client_1.UserStatus.BLOCKED) {
+        const request = context.switchToHttp().getRequest();
+        const { user } = request;
+        if (!user) {
+            return true;
+        }
+        if (user.status === client_1.UserStatus.BLOCKED) {
             throw new common_1.ForbiddenException('Your account has been blocked by an administrator');
+        }
+        if (user.role === client_1.Role.ADMIN) {
+            const path = request.path || '';
+            if (path.endsWith(`/users/${user.id}`)) {
+                return true;
+            }
+            if (!user.restaurant) {
+                throw new common_1.ForbiddenException('No restaurant associated with this admin. Please complete onboarding.');
+            }
+            const restStatus = user.restaurant.status;
+            if (restStatus === client_1.AdminStatus.PENDING) {
+                throw new common_1.ForbiddenException('Your vendor registration is pending approval from the platform owner.');
+            }
+            else if (restStatus === client_1.AdminStatus.REJECTED) {
+                throw new common_1.ForbiddenException('Your vendor registration has been rejected.');
+            }
+            else if (restStatus === client_1.AdminStatus.SUSPENDED) {
+                throw new common_1.ForbiddenException('Your vendor account has been suspended by the platform owner.');
+            }
         }
         return true;
     }

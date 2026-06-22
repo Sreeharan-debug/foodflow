@@ -46,8 +46,15 @@ let OrdersService = class OrdersService {
         if (!address) {
             throw new common_1.NotFoundException('Selected shipping address not found');
         }
+        if (!cart.items[0]?.food?.restaurantId) {
+            throw new common_1.BadRequestException('Food items in the cart must belong to a restaurant.');
+        }
+        const restaurantId = cart.items[0].food.restaurantId;
         let subtotal = new client_1.Prisma.Decimal(0);
         for (const item of cart.items) {
+            if (item.food.restaurantId !== restaurantId) {
+                throw new common_1.BadRequestException('All items in your cart must be from the same restaurant.');
+            }
             const price = new client_1.Prisma.Decimal(item.food.price);
             subtotal = subtotal.add(price.mul(item.quantity));
         }
@@ -76,38 +83,36 @@ let OrdersService = class OrdersService {
         if (total.lt(0)) {
             total = new client_1.Prisma.Decimal(0);
         }
-        const order = await this.prisma.$transaction(async (tx) => {
-            const createdOrder = await tx.order.create({
-                data: {
-                    userId,
-                    addressId,
-                    couponId,
-                    tax,
-                    discount,
-                    total,
-                    status: client_1.OrderStatus.PENDING,
-                    items: {
-                        create: cart.items.map((item) => ({
-                            foodId: item.foodId,
-                            price: item.food.price,
-                            quantity: item.quantity,
-                        })),
-                    },
+        const order = await this.prisma.order.create({
+            data: {
+                userId,
+                addressId,
+                couponId,
+                restaurantId,
+                tax,
+                discount,
+                total,
+                status: client_1.OrderStatus.PENDING,
+                items: {
+                    create: cart.items.map((item) => ({
+                        foodId: item.foodId,
+                        price: item.food.price,
+                        quantity: item.quantity,
+                    })),
                 },
-                include: {
-                    items: {
-                        include: { food: true },
-                    },
-                    address: true,
-                    user: {
-                        select: { id: true, email: true, name: true },
-                    },
+            },
+            include: {
+                items: {
+                    include: { food: true },
                 },
-            });
-            await tx.cartItem.deleteMany({
-                where: { cartId: cart.id },
-            });
-            return createdOrder;
+                address: true,
+                user: {
+                    select: { id: true, email: true, name: true },
+                },
+            },
+        });
+        await this.prisma.cartItem.deleteMany({
+            where: { cartId: cart.id },
         });
         this.wsGateway.broadcastOrderCreated(order);
         await this.prisma.auditLog.create({
@@ -119,10 +124,26 @@ let OrdersService = class OrdersService {
             },
         });
         const razorpayOrder = await this.paymentsService.createRazorpayOrder(order.id, userId);
+        this.emailService.sendOrderConfirmationEmail(order.user.name, order.user.email, order.id, order.total.toString()).catch((err) => {
+            console.error('[Email Error] checkout order confirmation email failed:', err);
+        });
         return { order, razorpayOrder };
     }
-    async findAll(userId, role) {
+    async findAll(userId, role, restaurantId) {
         if (role === client_1.Role.ADMIN) {
+            return this.prisma.order.findMany({
+                where: { restaurantId },
+                include: {
+                    user: {
+                        select: { id: true, email: true, name: true },
+                    },
+                    address: true,
+                    items: { include: { food: true } },
+                },
+                orderBy: { createdAt: 'desc' },
+            });
+        }
+        if (role === client_1.Role.SUPER_ADMIN) {
             return this.prisma.order.findMany({
                 include: {
                     user: {
@@ -143,7 +164,7 @@ let OrdersService = class OrdersService {
             orderBy: { createdAt: 'desc' },
         });
     }
-    async findOne(userId, role, orderId) {
+    async findOne(userId, role, orderId, restaurantId) {
         const order = await this.prisma.order.findUnique({
             where: { id: orderId },
             include: {
@@ -155,12 +176,17 @@ let OrdersService = class OrdersService {
         if (!order) {
             throw new common_1.NotFoundException(`Order with ID ${orderId} not found`);
         }
-        if (role !== client_1.Role.ADMIN && order.userId !== userId) {
+        if (role === client_1.Role.ADMIN) {
+            if (order.restaurantId !== restaurantId) {
+                throw new common_1.BadRequestException('You do not have access to view this order');
+            }
+        }
+        else if (role !== client_1.Role.SUPER_ADMIN && order.userId !== userId) {
             throw new common_1.BadRequestException('You do not have access to view this order');
         }
         return order;
     }
-    async updateStatus(orderId, updateOrderStatusDto, performedBy) {
+    async updateStatus(orderId, updateOrderStatusDto, performedBy, restaurantId) {
         const order = await this.prisma.order.findUnique({
             where: { id: orderId },
             include: {
@@ -171,6 +197,9 @@ let OrdersService = class OrdersService {
         });
         if (!order) {
             throw new common_1.NotFoundException(`Order with ID ${orderId} not found`);
+        }
+        if (restaurantId && order.restaurantId !== restaurantId) {
+            throw new common_1.BadRequestException('You do not have permission to update this order');
         }
         const updatedOrder = await this.prisma.order.update({
             where: { id: orderId },
@@ -190,6 +219,16 @@ let OrdersService = class OrdersService {
                 entityId: orderId,
             },
         });
+        this.emailService.sendOrderStatusUpdateEmail(updatedOrder.user.name, updatedOrder.user.email, updatedOrder.id, updatedOrder.status).catch((err) => {
+            console.error('[Email Error] status update email failed:', err);
+        });
+        if (updatedOrder.status === 'DELIVERED') {
+            setTimeout(() => {
+                this.emailService.sendReviewRequestEmail(updatedOrder.user.name, updatedOrder.user.email, updatedOrder.id).catch((err) => {
+                    console.error('[Email Error] review request email failed:', err);
+                });
+            }, 5000);
+        }
         return updatedOrder;
     }
 };

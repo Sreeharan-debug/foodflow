@@ -10,11 +10,19 @@ generator client {
 enum Role {
   CUSTOMER
   ADMIN
+  SUPER_ADMIN
 }
 
 enum UserStatus {
   ACTIVE
   BLOCKED
+}
+
+enum AdminStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
 }
 
 enum OrderStatus {
@@ -45,6 +53,8 @@ model User {
   cart               Cart?
   orders             Order[]
   reviews            Review[]
+  restaurant         Restaurant?
+  invoices           Invoice[]
 
   @@index([email])
 }
@@ -81,12 +91,14 @@ model Address {
 }
 
 model Category {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  foods       Food[]
+  id           String      @id @default(uuid())
+  name         String      @unique
+  description  String?
+  restaurantId String?
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  foods        Food[]
 }
 
 model Food {
@@ -106,6 +118,8 @@ model Food {
   spiceLevel      String?     @default("Medium")
   categoryId      String
   category        Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  restaurantId    String?
+  restaurant      Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   cartItems       CartItem[]
@@ -113,6 +127,7 @@ model Food {
   reviews         Review[]
 
   @@index([categoryId])
+  @@index([restaurantId])
 }
 
 model Cart {
@@ -141,6 +156,8 @@ model Order {
   id            String      @id @default(uuid())
   userId        String
   user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurantId  String?
+  restaurant    Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   total         Decimal     @db.Decimal(10, 2)
   tax           Decimal     @db.Decimal(10, 2)
   discount      Decimal     @db.Decimal(10, 2) @default(0.00)
@@ -154,8 +171,10 @@ model Order {
   updatedAt     DateTime    @updatedAt
   items         OrderItem[]
   payments      Payment[]
+  invoice       Invoice?
 
   @@index([userId])
+  @@index([restaurantId])
 }
 
 model OrderItem {
@@ -173,16 +192,19 @@ model OrderItem {
 }
 
 model Coupon {
-  id        String   @id @default(uuid())
-  code      String   @unique
-  discount  Decimal  @db.Decimal(10, 2) // Flat discount or percentage discount represented as integer
-  expiresAt DateTime
-  isActive  Boolean  @default(true)
-  orders    Order[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String      @id @default(uuid())
+  code         String      @unique
+  discount     Decimal     @db.Decimal(10, 2) // Flat discount or percentage discount represented as integer
+  expiresAt    DateTime
+  isActive     Boolean     @default(true)
+  restaurantId String?
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  orders       Order[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   @@index([code])
+  @@index([restaurantId])
 }
 
 model AuditLog {
@@ -197,15 +219,17 @@ model AuditLog {
 }
 
 model Review {
-  id        String   @id @default(uuid())
-  rating    Int      // 1 to 5
-  comment   String
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  foodId    String
-  food      Food     @relation(fields: [foodId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String      @id @default(uuid())
+  rating       Int      // 1 to 5
+  comment      String
+  userId       String
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  foodId       String?
+  food         Food?       @relation(fields: [foodId], references: [id], onDelete: Cascade)
+  restaurantId String?
+  restaurant   Restaurant? @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   @@unique([userId, foodId])
 }
@@ -219,4 +243,32 @@ model Payment {
   amount            Decimal  @db.Decimal(10, 2)
   status            String   // "PENDING", "SUCCESS", "FAILED"
   createdAt         DateTime @default(now())
+}
+
+model Restaurant {
+  id        String      @id @default(uuid())
+  name      String
+  ownerId   String      @unique
+  owner     User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  logo      String?
+  address   String
+  status    AdminStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  foods     Food[]
+  orders    Order[]
+  coupons   Coupon[]
+  reviews   Review[]
+  categories Category[]
+}
+
+model Invoice {
+  id            String   @id @default(uuid())
+  invoiceNumber String   @unique
+  orderId       String   @unique
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customerId    String
+  customer      User     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  pdfUrl        String?
+  createdAt     DateTime @default(now())
 }

@@ -8,6 +8,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, MapPin, Receipt, CheckCircle2, ChevronRight, XCircle, Play, AlertCircle, Loader2 } from 'lucide-react';
+import { useAuth } from '@/providers/auth-provider';
+import StatusBlocker from '@/components/shared/status-blocker';
 
 enum OrderStatus {
   PENDING = 'PENDING',
@@ -46,9 +48,22 @@ interface Order {
 }
 
 export default function LiveOrderQueuePage() {
+  const { user } = useAuth();
+  const restaurantStatus = user?.restaurant?.status;
+
   const queryClient = useQueryClient();
   const { socket, isConnected } = useSocket();
   const [activeOrders, setActiveOrders] = useState<Order[]>([]);
+
+  if (user?.role === 'ADMIN' && restaurantStatus !== 'APPROVED') {
+    return (
+      <StatusBlocker
+        status={restaurantStatus}
+        restaurantName={user?.restaurant?.name}
+        userName={user?.name}
+      />
+    );
+  }
 
   // 1. Fetch initial orders backlog
   const { isLoading, error } = useQuery<Order[]>({

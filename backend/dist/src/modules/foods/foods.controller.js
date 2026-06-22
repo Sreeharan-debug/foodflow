@@ -31,11 +31,11 @@ let FoodsController = class FoodsController {
         this.foodsService = foodsService;
         this.cloudinaryService = cloudinaryService;
     }
-    async getFoods(search, categoryId, featured, popular, sort, page, limit, isVeg) {
-        return this.foodsService.findAll({ search, categoryId, featured, popular, sort, page, limit, isVeg });
+    async getFoods(search, categoryId, featured, popular, sort, page, limit, isVeg, restaurantId) {
+        return this.foodsService.findAll({ search, categoryId, featured, popular, sort, page, limit, isVeg, restaurantId });
     }
-    async getFoodsAdmin() {
-        return this.foodsService.findAllAdmin();
+    async getFoodsAdmin(adminUser) {
+        return this.foodsService.findAllAdmin(adminUser.restaurant?.id);
     }
     async getFeaturedFoods() {
         return this.foodsService.findFeatured();
@@ -43,25 +43,31 @@ let FoodsController = class FoodsController {
     async getPopularFoods() {
         return this.foodsService.findPopular();
     }
+    async getRestaurants() {
+        return this.foodsService.getRestaurants();
+    }
+    async getRestaurantById(id) {
+        return this.foodsService.getRestaurant(id);
+    }
     async getFoodById(id) {
         return this.foodsService.findOne(id);
     }
-    async createFood(createFoodDto, file, adminEmail) {
+    async createFood(createFoodDto, file, adminUser) {
         let imageUrl = '';
         if (file) {
             imageUrl = await this.cloudinaryService.uploadImage(file);
         }
-        return this.foodsService.create(createFoodDto, imageUrl, adminEmail);
+        return this.foodsService.create(createFoodDto, imageUrl, adminUser.email, adminUser.restaurant?.id);
     }
-    async updateFood(id, updateFoodDto, file, adminEmail) {
+    async updateFood(id, updateFoodDto, file, adminUser) {
         let imageUrl = '';
         if (file) {
             imageUrl = await this.cloudinaryService.uploadImage(file);
         }
-        return this.foodsService.update(id, updateFoodDto, imageUrl, adminEmail);
+        return this.foodsService.update(id, updateFoodDto, imageUrl, adminUser.email, adminUser.restaurant?.id);
     }
-    async deleteFood(id, adminEmail) {
-        return this.foodsService.remove(id, adminEmail);
+    async deleteFood(id, adminUser) {
+        return this.foodsService.remove(id, adminUser.email, adminUser.restaurant?.id);
     }
 };
 exports.FoodsController = FoodsController;
@@ -75,16 +81,18 @@ __decorate([
     __param(5, (0, common_1.Query)('page')),
     __param(6, (0, common_1.Query)('limit')),
     __param(7, (0, common_1.Query)('isVeg')),
+    __param(8, (0, common_1.Query)('restaurantId')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String, String, String, String, String, String]),
+    __metadata("design:paramtypes", [String, String, String, String, String, String, String, String, String]),
     __metadata("design:returntype", Promise)
 ], FoodsController.prototype, "getFoods", null);
 __decorate([
     (0, common_1.Get)('admin'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, status_guard_1.StatusGuard, roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], FoodsController.prototype, "getFoodsAdmin", null);
 __decorate([
@@ -100,6 +108,19 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], FoodsController.prototype, "getPopularFoods", null);
 __decorate([
+    (0, common_1.Get)('restaurants'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], FoodsController.prototype, "getRestaurants", null);
+__decorate([
+    (0, common_1.Get)('restaurants/:id'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], FoodsController.prototype, "getRestaurantById", null);
+__decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
@@ -113,9 +134,9 @@ __decorate([
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('image')),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.UploadedFile)()),
-    __param(2, (0, current_user_decorator_1.CurrentUser)('email')),
+    __param(2, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [food_dto_1.CreateFoodDto, Object, String]),
+    __metadata("design:paramtypes", [food_dto_1.CreateFoodDto, Object, Object]),
     __metadata("design:returntype", Promise)
 ], FoodsController.prototype, "createFood", null);
 __decorate([
@@ -126,9 +147,9 @@ __decorate([
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __param(2, (0, common_1.UploadedFile)()),
-    __param(3, (0, current_user_decorator_1.CurrentUser)('email')),
+    __param(3, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, food_dto_1.UpdateFoodDto, Object, String]),
+    __metadata("design:paramtypes", [String, food_dto_1.UpdateFoodDto, Object, Object]),
     __metadata("design:returntype", Promise)
 ], FoodsController.prototype, "updateFood", null);
 __decorate([
@@ -136,9 +157,9 @@ __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, status_guard_1.StatusGuard, roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
     __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, current_user_decorator_1.CurrentUser)('email')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], FoodsController.prototype, "deleteFood", null);
 exports.FoodsController = FoodsController = __decorate([

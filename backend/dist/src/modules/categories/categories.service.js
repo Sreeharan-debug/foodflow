@@ -17,12 +17,20 @@ let CategoriesService = class CategoriesService {
     constructor(prisma) {
         this.prisma = prisma;
     }
-    async findAll() {
+    async findAll(restaurantId) {
+        const where = {};
+        if (restaurantId) {
+            where.OR = [
+                { restaurantId: null },
+                { restaurantId },
+            ];
+        }
         return this.prisma.category.findMany({
+            where,
             orderBy: { name: 'asc' },
         });
     }
-    async findOne(id) {
+    async findOne(id, restaurantId) {
         const category = await this.prisma.category.findUnique({
             where: { id },
             include: { foods: true },
@@ -30,17 +38,29 @@ let CategoriesService = class CategoriesService {
         if (!category) {
             throw new common_1.NotFoundException(`Category with ID ${id} not found`);
         }
+        if (restaurantId && category.restaurantId && category.restaurantId !== restaurantId) {
+            throw new common_1.NotFoundException(`Category with ID ${id} not found`);
+        }
         return category;
     }
-    async create(createCategoryDto, performedBy) {
-        const existing = await this.prisma.category.findUnique({
-            where: { name: createCategoryDto.name },
+    async create(createCategoryDto, performedBy, restaurantId) {
+        const existing = await this.prisma.category.findFirst({
+            where: {
+                name: { equals: createCategoryDto.name, mode: 'insensitive' },
+                OR: [
+                    { restaurantId: null },
+                    { restaurantId },
+                ],
+            },
         });
         if (existing) {
             throw new common_1.ConflictException(`Category with name "${createCategoryDto.name}" already exists`);
         }
         const category = await this.prisma.category.create({
-            data: createCategoryDto,
+            data: {
+                ...createCategoryDto,
+                restaurantId,
+            },
         });
         await this.prisma.auditLog.create({
             data: {
@@ -52,8 +72,11 @@ let CategoriesService = class CategoriesService {
         });
         return category;
     }
-    async update(id, updateCategoryDto, performedBy) {
-        await this.findOne(id);
+    async update(id, updateCategoryDto, performedBy, restaurantId) {
+        const existingCategory = await this.findOne(id, restaurantId);
+        if (existingCategory.restaurantId && existingCategory.restaurantId !== restaurantId) {
+            throw new common_1.ConflictException('You do not have permission to edit this category');
+        }
         if (updateCategoryDto.name) {
             const existing = await this.prisma.category.findFirst({
                 where: {
@@ -79,8 +102,11 @@ let CategoriesService = class CategoriesService {
         });
         return category;
     }
-    async remove(id, performedBy) {
-        await this.findOne(id);
+    async remove(id, performedBy, restaurantId) {
+        const existingCategory = await this.findOne(id, restaurantId);
+        if (existingCategory.restaurantId && existingCategory.restaurantId !== restaurantId) {
+            throw new common_1.ConflictException('You do not have permission to delete this category');
+        }
         await this.prisma.category.delete({ where: { id } });
         await this.prisma.auditLog.create({
             data: {

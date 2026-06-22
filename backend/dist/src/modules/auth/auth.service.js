@@ -112,39 +112,100 @@ let AuthService = class AuthService {
             throw new common_1.ConflictException('A user with this email address already exists');
         }
         const hashedPassword = await bcrypt.hash(registerDto.password, 10);
-        const user = await this.prisma.$transaction(async (tx) => {
-            const createdUser = await tx.user.create({
-                data: {
-                    email: registerDto.email,
-                    password: hashedPassword,
-                    name: registerDto.name,
-                    firstName: registerDto.name.split(' ')[0] || registerDto.name,
-                    role: client_1.Role.CUSTOMER,
-                    status: client_1.UserStatus.ACTIVE,
-                },
-                select: {
-                    id: true,
-                    email: true,
-                    name: true,
-                    firstName: true,
-                    role: true,
-                    status: true,
-                    createdAt: true,
-                },
-            });
-            await tx.cart.create({
-                data: {
-                    userId: createdUser.id,
-                },
-            });
-            return createdUser;
+        const user = await this.prisma.user.create({
+            data: {
+                email: registerDto.email,
+                password: hashedPassword,
+                name: registerDto.name,
+                firstName: registerDto.name.split(' ')[0] || registerDto.name,
+                role: client_1.Role.CUSTOMER,
+                status: client_1.UserStatus.ACTIVE,
+            },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                firstName: true,
+                role: true,
+                status: true,
+                createdAt: true,
+            },
+        });
+        await this.prisma.cart.create({
+            data: {
+                userId: user.id,
+            },
         });
         const tokens = await this.generateTokens(user.id, user.email, user.role);
+        this.emailService.sendWelcomeEmail(user.firstName || user.name.split(' ')[0] || 'Customer', user.email).catch((err) => {
+            console.error('[Email Error] register welcome email failed:', err);
+        });
         return { user, tokens };
+    }
+    async registerVendor(registerVendorDto) {
+        const existingUser = await this.prisma.user.findUnique({
+            where: { email: registerVendorDto.email },
+        });
+        if (existingUser) {
+            throw new common_1.ConflictException('A user with this email address already exists');
+        }
+        const hashedPassword = await bcrypt.hash(registerVendorDto.password, 10);
+        const createdUser = await this.prisma.user.create({
+            data: {
+                email: registerVendorDto.email,
+                password: hashedPassword,
+                name: registerVendorDto.name,
+                firstName: registerVendorDto.name.split(' ')[0] || registerVendorDto.name,
+                role: client_1.Role.ADMIN,
+                status: client_1.UserStatus.ACTIVE,
+            },
+            select: {
+                id: true,
+                email: true,
+                name: true,
+                firstName: true,
+                role: true,
+                status: true,
+                createdAt: true,
+            },
+        });
+        await this.prisma.cart.create({
+            data: {
+                userId: createdUser.id,
+            },
+        });
+        const restaurant = await this.prisma.restaurant.create({
+            data: {
+                name: registerVendorDto.restaurantName,
+                ownerId: createdUser.id,
+                address: registerVendorDto.address,
+                logo: registerVendorDto.logo || '',
+                status: client_1.AdminStatus.PENDING,
+            },
+        });
+        const result = { user: createdUser, restaurant };
+        const tokens = await this.generateTokens(result.user.id, result.user.email, result.user.role);
+        this.emailService.sendWelcomeEmail(result.user.firstName || 'Vendor', result.user.email).catch((err) => {
+            console.error('[Email Error] registerVendor welcome email failed:', err);
+        });
+        return {
+            user: result.user,
+            restaurant: result.restaurant,
+            tokens,
+        };
     }
     async login(loginDto) {
         const user = await this.prisma.user.findUnique({
             where: { email: loginDto.email },
+            include: {
+                restaurant: {
+                    select: {
+                        id: true,
+                        name: true,
+                        status: true,
+                    },
+                },
+            },
         });
         if (!user || !user.password) {
             throw new common_1.UnauthorizedException('Invalid email or password');
@@ -168,6 +229,7 @@ let AuthService = class AuthService {
                 provider: user.provider,
                 profileImage: user.profileImage,
                 mustChangePassword: user.mustChangePassword,
+                restaurant: user.restaurant,
             },
             tokens,
         };
@@ -220,30 +282,37 @@ let AuthService = class AuthService {
         }
         let user = await this.prisma.user.findUnique({
             where: { email },
+            include: {
+                restaurant: {
+                    select: {
+                        id: true,
+                        name: true,
+                        status: true,
+                    },
+                },
+            },
         });
         let isNewUser = false;
         if (!user) {
             isNewUser = true;
-            user = await this.prisma.$transaction(async (tx) => {
-                const createdUser = await tx.user.create({
-                    data: {
-                        email,
-                        name,
-                        firstName,
-                        provider: 'google',
-                        profileImage: picture,
-                        welcomeEmailSent: true,
-                        status: client_1.UserStatus.ACTIVE,
-                        role: client_1.Role.CUSTOMER,
-                    },
-                });
-                await tx.cart.create({
-                    data: { userId: createdUser.id },
-                });
-                return createdUser;
+            const createdUser = await this.prisma.user.create({
+                data: {
+                    email,
+                    name,
+                    firstName,
+                    provider: 'google',
+                    profileImage: picture,
+                    welcomeEmailSent: true,
+                    status: client_1.UserStatus.ACTIVE,
+                    role: client_1.Role.CUSTOMER,
+                },
             });
+            await this.prisma.cart.create({
+                data: { userId: createdUser.id },
+            });
+            user = { ...createdUser, restaurant: null };
             this.emailService.sendWelcomeEmail(firstName, email).catch((err) => {
-                console.error('Failed to send welcome email:', err);
+                console.error('[Email Error] Google login welcome email failed:', err);
             });
         }
         else {
@@ -261,8 +330,20 @@ let AuthService = class AuthService {
                 user = await this.prisma.user.update({
                     where: { id: user.id },
                     data: updates,
+                    include: {
+                        restaurant: {
+                            select: {
+                                id: true,
+                                name: true,
+                                status: true,
+                            },
+                        },
+                    },
                 });
             }
+        }
+        if (!user) {
+            throw new common_1.UnauthorizedException('Google authentication failed: User profile not found');
         }
         if (user.status === client_1.UserStatus.BLOCKED) {
             throw new common_1.ForbiddenException('Your account has been blocked by an administrator');
@@ -279,6 +360,7 @@ let AuthService = class AuthService {
                 provider: user.provider,
                 profileImage: user.profileImage,
                 isNewUser,
+                restaurant: user.restaurant,
             },
             tokens,
         };

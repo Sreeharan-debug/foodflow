@@ -27,6 +27,11 @@ export declare class UsersService {
         profileImage: string | null;
         mustChangePassword: boolean;
         createdAt: Date;
+        restaurant: {
+            id: string;
+            name: string;
+            status: import(".prisma/client").$Enums.AdminStatus;
+        } | null;
     }>;
     update(id: string, updateUserDto: UpdateUserDto, performedBy: string): Promise<{
         id: string;
@@ -46,7 +51,6 @@ export declare class UsersService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        userId: string;
         label: string;
         houseNumber: string;
         buildingName: string | null;
@@ -56,12 +60,12 @@ export declare class UsersService {
         district: string;
         state: string;
         pincode: string;
+        userId: string;
     }[]>;
     createAddress(userId: string, createAddressDto: CreateAddressDto): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        userId: string;
         label: string;
         houseNumber: string;
         buildingName: string | null;
@@ -71,12 +75,12 @@ export declare class UsersService {
         district: string;
         state: string;
         pincode: string;
+        userId: string;
     }>;
     updateAddress(userId: string, addressId: string, updateAddressDto: UpdateAddressDto): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        userId: string;
         label: string;
         houseNumber: string;
         buildingName: string | null;
@@ -86,6 +90,7 @@ export declare class UsersService {
         district: string;
         state: string;
         pincode: string;
+        userId: string;
     }>;
     removeAddress(userId: string, addressId: string): Promise<{
         message: string;

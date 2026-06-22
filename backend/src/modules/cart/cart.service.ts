@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AddToCartDto, UpdateCartItemDto } from './dto/cart.dto';
 
@@ -44,6 +44,14 @@ export class CartService {
       throw new NotFoundException('Food item is not available or does not exist');
     }
 
+    // Enforce that all items in the cart must belong to the same restaurant
+    if (cart.items.length > 0) {
+      const firstItem = cart.items[0];
+      if (firstItem.food.restaurantId && food.restaurantId && firstItem.food.restaurantId !== food.restaurantId) {
+        throw new ConflictException('All items in the cart must belong to the same restaurant');
+      }
+    }
+
     // Check if food already in cart
     const existingItem = await this.prisma.cartItem.findUnique({
       where: {
@@ -76,7 +84,13 @@ export class CartService {
     const cart = await this.getOrCreateCart(userId);
 
     const item = await this.prisma.cartItem.findFirst({
-      where: { id: cartItemId, cartId: cart.id },
+      where: {
+        cartId: cart.id,
+        OR: [
+          { id: cartItemId },
+          { foodId: cartItemId },
+        ],
+      },
     });
 
     if (!item) {
@@ -84,7 +98,7 @@ export class CartService {
     }
 
     await this.prisma.cartItem.update({
-      where: { id: cartItemId },
+      where: { id: item.id },
       data: { quantity: updateCartItemDto.quantity },
     });
 
@@ -95,7 +109,13 @@ export class CartService {
     const cart = await this.getOrCreateCart(userId);
 
     const item = await this.prisma.cartItem.findFirst({
-      where: { id: cartItemId, cartId: cart.id },
+      where: {
+        cartId: cart.id,
+        OR: [
+          { id: cartItemId },
+          { foodId: cartItemId },
+        ],
+      },
     });
 
     if (!item) {
@@ -103,7 +123,7 @@ export class CartService {
     }
 
     await this.prisma.cartItem.delete({
-      where: { id: cartItemId },
+      where: { id: item.id },
     });
 
     return this.getOrCreateCart(userId);

@@ -8,7 +8,6 @@ export declare class UsersController {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        userId: string;
         label: string;
         houseNumber: string;
         buildingName: string | null;
@@ -18,12 +17,12 @@ export declare class UsersController {
         district: string;
         state: string;
         pincode: string;
+        userId: string;
     }[]>;
     createMyAddress(userId: string, createAddressDto: CreateAddressDto): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        userId: string;
         label: string;
         houseNumber: string;
         buildingName: string | null;
@@ -33,12 +32,12 @@ export declare class UsersController {
         district: string;
         state: string;
         pincode: string;
+        userId: string;
     }>;
     updateMyAddress(userId: string, addressId: string, updateAddressDto: UpdateAddressDto): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        userId: string;
         label: string;
         houseNumber: string;
         buildingName: string | null;
@@ -48,6 +47,7 @@ export declare class UsersController {
         district: string;
         state: string;
         pincode: string;
+        userId: string;
     }>;
     deleteMyAddress(userId: string, addressId: string): Promise<{
         message: string;
@@ -75,6 +75,11 @@ export declare class UsersController {
         profileImage: string | null;
         mustChangePassword: boolean;
         createdAt: Date;
+        restaurant: {
+            id: string;
+            name: string;
+            status: import(".prisma/client").$Enums.AdminStatus;
+        } | null;
     }>;
     updateUser(id: string, updateUserDto: UpdateUserDto, adminEmail: string): Promise<{
         id: string;

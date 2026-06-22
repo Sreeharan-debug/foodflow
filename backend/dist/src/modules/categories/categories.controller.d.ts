@@ -3,12 +3,13 @@ import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
 export declare class CategoriesController {
     private readonly categoriesService;
     constructor(categoriesService: CategoriesService);
-    getCategories(): Promise<{
+    getCategories(restaurantId?: string): Promise<{
         id: string;
         name: string;
         createdAt: Date;
         updatedAt: Date;
         description: string | null;
+        restaurantId: string | null;
     }[]>;
     getCategoryById(id: string): Promise<{
         foods: {
@@ -29,6 +30,7 @@ export declare class CategoriesController {
             isNew: boolean;
             spiceLevel: string | null;
             categoryId: string;
+            restaurantId: string | null;
         }[];
     } & {
         id: string;
@@ -36,22 +38,25 @@ export declare class CategoriesController {
         createdAt: Date;
         updatedAt: Date;
         description: string | null;
+        restaurantId: string | null;
     }>;
-    createCategory(createCategoryDto: CreateCategoryDto, adminEmail: string): Promise<{
+    createCategory(createCategoryDto: CreateCategoryDto, adminUser: any): Promise<{
         id: string;
         name: string;
         createdAt: Date;
         updatedAt: Date;
         description: string | null;
+        restaurantId: string | null;
     }>;
-    updateCategory(id: string, updateCategoryDto: UpdateCategoryDto, adminEmail: string): Promise<{
+    updateCategory(id: string, updateCategoryDto: UpdateCategoryDto, adminUser: any): Promise<{
         id: string;
         name: string;
         createdAt: Date;
         updatedAt: Date;
         description: string | null;
+        restaurantId: string | null;
     }>;
-    deleteCategory(id: string, adminEmail: string): Promise<{
+    deleteCategory(id: string, adminUser: any): Promise<{
         message: string;
     }>;
 }

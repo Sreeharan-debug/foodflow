@@ -30,20 +30,20 @@ let CouponsController = class CouponsController {
     async validateCoupon(code) {
         return this.couponsService.findByCode(code);
     }
-    async getCoupons() {
-        return this.couponsService.findAll();
+    async getCoupons(adminUser) {
+        return this.couponsService.findAll(adminUser.restaurant?.id);
     }
-    async getCouponById(id) {
-        return this.couponsService.findOne(id);
+    async getCouponById(id, adminUser) {
+        return this.couponsService.findOne(id, adminUser.restaurant?.id);
     }
-    async createCoupon(createCouponDto, adminEmail) {
-        return this.couponsService.create(createCouponDto, adminEmail);
+    async createCoupon(createCouponDto, adminUser) {
+        return this.couponsService.create(createCouponDto, adminUser.email, adminUser.restaurant?.id);
     }
-    async updateCoupon(id, updateCouponDto, adminEmail) {
-        return this.couponsService.update(id, updateCouponDto, adminEmail);
+    async updateCoupon(id, updateCouponDto, adminUser) {
+        return this.couponsService.update(id, updateCouponDto, adminUser.email, adminUser.restaurant?.id);
     }
-    async deleteCoupon(id, adminEmail) {
-        return this.couponsService.remove(id, adminEmail);
+    async deleteCoupon(id, adminUser) {
+        return this.couponsService.remove(id, adminUser.email, adminUser.restaurant?.id);
     }
 };
 exports.CouponsController = CouponsController;
@@ -58,8 +58,9 @@ __decorate([
     (0, common_1.Get)(),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], CouponsController.prototype, "getCoupons", null);
 __decorate([
@@ -67,8 +68,9 @@ __decorate([
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
     __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], CouponsController.prototype, "getCouponById", null);
 __decorate([
@@ -76,9 +78,9 @@ __decorate([
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
     __param(0, (0, common_1.Body)()),
-    __param(1, (0, current_user_decorator_1.CurrentUser)('email')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [coupon_dto_1.CreateCouponDto, String]),
+    __metadata("design:paramtypes", [coupon_dto_1.CreateCouponDto, Object]),
     __metadata("design:returntype", Promise)
 ], CouponsController.prototype, "createCoupon", null);
 __decorate([
@@ -87,9 +89,9 @@ __decorate([
     (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
-    __param(2, (0, current_user_decorator_1.CurrentUser)('email')),
+    __param(2, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, coupon_dto_1.UpdateCouponDto, String]),
+    __metadata("design:paramtypes", [String, coupon_dto_1.UpdateCouponDto, Object]),
     __metadata("design:returntype", Promise)
 ], CouponsController.prototype, "updateCoupon", null);
 __decorate([
@@ -97,9 +99,9 @@ __decorate([
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
     __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, current_user_decorator_1.CurrentUser)('email')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], CouponsController.prototype, "deleteCoupon", null);
 exports.CouponsController = CouponsController = __decorate([

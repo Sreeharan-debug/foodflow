@@ -18,21 +18,29 @@ let CouponsService = class CouponsService {
     constructor(prisma) {
         this.prisma = prisma;
     }
-    async findAll() {
+    async findAll(restaurantId) {
+        const where = {};
+        if (restaurantId) {
+            where.restaurantId = restaurantId;
+        }
         return this.prisma.coupon.findMany({
+            where,
             orderBy: { createdAt: 'desc' },
         });
     }
-    async findOne(id) {
+    async findOne(id, restaurantId) {
         const coupon = await this.prisma.coupon.findUnique({
             where: { id },
         });
         if (!coupon) {
             throw new common_1.NotFoundException(`Coupon with ID ${id} not found`);
         }
+        if (restaurantId && coupon.restaurantId !== restaurantId) {
+            throw new common_1.NotFoundException(`Coupon with ID ${id} not found`);
+        }
         return coupon;
     }
-    async findByCode(code) {
+    async findByCode(code, restaurantId) {
         const coupon = await this.prisma.coupon.findUnique({
             where: { code: code.toUpperCase() },
         });
@@ -45,9 +53,12 @@ let CouponsService = class CouponsService {
         if (new Date() > coupon.expiresAt) {
             throw new common_1.BadRequestException('This coupon has expired');
         }
+        if (restaurantId && coupon.restaurantId && coupon.restaurantId !== restaurantId) {
+            throw new common_1.BadRequestException('This coupon is not valid for this restaurant');
+        }
         return coupon;
     }
-    async create(createCouponDto, performedBy) {
+    async create(createCouponDto, performedBy, restaurantId) {
         const code = createCouponDto.code.toUpperCase();
         const existing = await this.prisma.coupon.findUnique({
             where: { code },
@@ -61,6 +72,7 @@ let CouponsService = class CouponsService {
                 discount: new client_1.Prisma.Decimal(createCouponDto.discount),
                 expiresAt: new Date(createCouponDto.expiresAt),
                 isActive: createCouponDto.isActive !== undefined ? createCouponDto.isActive : true,
+                restaurantId,
             },
         });
         await this.prisma.auditLog.create({
@@ -73,8 +85,8 @@ let CouponsService = class CouponsService {
         });
         return coupon;
     }
-    async update(id, updateCouponDto, performedBy) {
-        const existingCoupon = await this.findOne(id);
+    async update(id, updateCouponDto, performedBy, restaurantId) {
+        const existingCoupon = await this.findOne(id, restaurantId);
         const data = {};
         if (updateCouponDto.code !== undefined) {
             const code = updateCouponDto.code.toUpperCase();
@@ -109,8 +121,8 @@ let CouponsService = class CouponsService {
         });
         return coupon;
     }
-    async remove(id, performedBy) {
-        await this.findOne(id);
+    async remove(id, performedBy, restaurantId) {
+        await this.findOne(id, restaurantId);
         await this.prisma.coupon.delete({ where: { id } });
         await this.prisma.auditLog.create({
             data: {

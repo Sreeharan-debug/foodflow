@@ -10,6 +10,7 @@ import { getFirstName } from '@/utils/name';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
 import { DollarSign, ShoppingBag, Users, FolderOpen, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import StatusBlocker from '@/components/shared/status-blocker';
 
 interface KPI {
   totalOrders: number;
@@ -43,6 +44,18 @@ interface DashboardData {
 
 export default function AdminDashboardPage() {
   const { user } = useAuth();
+  const restaurantStatus = user?.restaurant?.status;
+
+  if (user?.role === 'ADMIN' && restaurantStatus !== 'APPROVED') {
+    return (
+      <StatusBlocker
+        status={restaurantStatus}
+        restaurantName={user?.restaurant?.name}
+        userName={user?.name}
+      />
+    );
+  }
+
   const { data, isLoading, error } = useQuery<DashboardData>({
     queryKey: ['admin-stats'],
     queryFn: async () => {

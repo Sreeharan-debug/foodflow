@@ -39,6 +39,13 @@ export class UsersService {
         profileImage: true,
         mustChangePassword: true,
         createdAt: true,
+        restaurant: {
+          select: {
+            id: true,
+            name: true,
+            status: true,
+          },
+        },
       },
     });
 

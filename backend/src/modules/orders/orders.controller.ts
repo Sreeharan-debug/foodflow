@@ -23,19 +23,17 @@ export class OrdersController {
 
   @Get()
   async getOrders(
-    @CurrentUser('id') userId: string,
-    @CurrentUser('role') role: Role,
+    @CurrentUser() user: any,
   ) {
-    return this.ordersService.findAll(userId, role);
+    return this.ordersService.findAll(user.id, user.role, user.restaurant?.id);
   }
 
   @Get(':id')
   async getOrderById(
-    @CurrentUser('id') userId: string,
-    @CurrentUser('role') role: Role,
+    @CurrentUser() user: any,
     @Param('id') id: string,
   ) {
-    return this.ordersService.findOne(userId, role, id);
+    return this.ordersService.findOne(user.id, user.role, id, user.restaurant?.id);
   }
 
   @Patch(':id/status')
@@ -44,8 +42,8 @@ export class OrdersController {
   async updateOrderStatus(
     @Param('id') id: string,
     @Body() updateOrderStatusDto: UpdateOrderStatusDto,
-    @CurrentUser('email') adminEmail: string,
+    @CurrentUser() adminUser: any,
   ) {
-    return this.ordersService.updateStatus(id, updateOrderStatusDto, adminEmail);
+    return this.ordersService.updateStatus(id, updateOrderStatusDto, adminUser.email, adminUser.restaurant?.id);
   }
 }

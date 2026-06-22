@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../../prisma/prisma.service';
 import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { EmailService } from '../email/email.service';
+import { InvoiceService } from './invoice.service';
 import { OrderStatus } from '@prisma/client';
 import * as crypto from 'crypto';
 import Razorpay from 'razorpay';
@@ -14,6 +15,7 @@ export class PaymentsService {
     private prisma: PrismaService,
     private wsGateway: WebsocketGateway,
     private emailService: EmailService,
+    private invoiceService: InvoiceService,
   ) {
     const keyId = process.env.RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -155,9 +157,33 @@ export class PaymentsService {
           user: true,
           items: { include: { food: true } },
           address: true,
+          restaurant: true,
         },
       });
     });
+
+    // Generate and store PDF Invoice
+    let pdfBuffer: Buffer | null = null;
+    let pdfUrl = '';
+    try {
+      const generated = await this.invoiceService.generateInvoicePdf(updatedOrder, {
+        razorpayPaymentId: razorpay_payment_id,
+      });
+      pdfUrl = generated.pdfUrl;
+      pdfBuffer = generated.pdfBuffer;
+
+      const invoiceNumber = `INV-${new Date().getFullYear()}-${updatedOrder.id.substring(0, 8).toUpperCase()}`;
+      await this.prisma.invoice.create({
+        data: {
+          invoiceNumber,
+          orderId: updatedOrder.id,
+          customerId: updatedOrder.userId,
+          pdfUrl,
+        },
+      });
+    } catch (invoiceErr) {
+      console.error('Invoice generation/db save failed:', invoiceErr);
+    }
 
     // Send emails in the background
     const userFirstName = updatedOrder.user.firstName || updatedOrder.user.name.split(' ')[0] || 'Customer';
@@ -170,18 +196,32 @@ export class PaymentsService {
         updatedOrder.id,
         updatedOrder.total.toString(),
       )
-      .catch((err) => console.error('Failed to send order confirmation email:', err));
+      .catch((err) => console.error('[Email Error] verifyPayment order confirmation failed:', err));
 
     // Payment Success Email
-    this.emailService
-      .sendPaymentSuccessEmail(
-        updatedOrder.user.email,
-        userFirstName,
-        razorpay_payment_id,
-        updatedOrder.id,
-        updatedOrder.total.toString(),
-      )
-      .catch((err) => console.error('Failed to send payment success email:', err));
+    if (pdfBuffer) {
+      this.emailService
+        .sendPaymentSuccessEmailWithAttachment(
+          updatedOrder.user.email,
+          userFirstName,
+          razorpay_payment_id,
+          updatedOrder.id,
+          updatedOrder.total.toString(),
+          `invoice-${updatedOrder.id}.pdf`,
+          pdfBuffer,
+        )
+        .catch((err) => console.error('[Email Error] verifyPayment payment success with attachment failed:', err));
+    } else {
+      this.emailService
+        .sendPaymentSuccessEmail(
+          updatedOrder.user.email,
+          userFirstName,
+          razorpay_payment_id,
+          updatedOrder.id,
+          updatedOrder.total.toString(),
+        )
+        .catch((err) => console.error('[Email Error] verifyPayment payment success failed:', err));
+    }
 
     // WebSocket Broadcast
     this.wsGateway.broadcastOrderUpdated(updatedOrder.id, OrderStatus.CONFIRMED, updatedOrder);

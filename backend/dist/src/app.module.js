@@ -23,6 +23,7 @@ const websocket_module_1 = require("./modules/websocket/websocket.module");
 const email_module_1 = require("./modules/email/email.module");
 const payments_module_1 = require("./modules/payments/payments.module");
 const reviews_module_1 = require("./modules/reviews/reviews.module");
+const super_admin_module_1 = require("./modules/super-admin/super-admin.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -46,6 +47,7 @@ exports.AppModule = AppModule = __decorate([
             websocket_module_1.WebsocketModule,
             payments_module_1.PaymentsModule,
             reviews_module_1.ReviewsModule,
+            super_admin_module_1.SuperAdminModule,
         ],
     })
 ], AppModule);

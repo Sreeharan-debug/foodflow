@@ -42,9 +42,17 @@ export class OrdersService {
       throw new NotFoundException('Selected shipping address not found');
     }
 
-    // 3. Calculate subtotal using Decimal
+    // 3. Calculate subtotal using Decimal and validate single restaurant
+    if (!cart.items[0]?.food?.restaurantId) {
+      throw new BadRequestException('Food items in the cart must belong to a restaurant.');
+    }
+    const restaurantId = cart.items[0].food.restaurantId;
+
     let subtotal = new Prisma.Decimal(0);
     for (const item of cart.items) {
+      if (item.food.restaurantId !== restaurantId) {
+        throw new BadRequestException('All items in your cart must be from the same restaurant.');
+      }
       const price = new Prisma.Decimal(item.food.price);
       subtotal = subtotal.add(price.mul(item.quantity));
     }
@@ -84,43 +92,39 @@ export class OrdersService {
       total = new Prisma.Decimal(0);
     }
 
-    // 7. Execute Checkout Transaction
-    const order = await this.prisma.$transaction(async (tx) => {
-      // Create Order
-      const createdOrder = await tx.order.create({
-        data: {
-          userId,
-          addressId,
-          couponId,
-          tax,
-          discount,
-          total,
-          status: OrderStatus.PENDING,
-          items: {
-            create: cart.items.map((item) => ({
-              foodId: item.foodId,
-              price: item.food.price,
-              quantity: item.quantity,
-            })),
-          },
+    // 7. Create Order (sequential ops — avoids Neon P2028 interactive-transaction timeout)
+    const order = await this.prisma.order.create({
+      data: {
+        userId,
+        addressId,
+        couponId,
+        restaurantId,
+        tax,
+        discount,
+        total,
+        status: OrderStatus.PENDING,
+        items: {
+          create: cart.items.map((item) => ({
+            foodId: item.foodId,
+            price: item.food.price,
+            quantity: item.quantity,
+          })),
         },
-        include: {
-          items: {
-            include: { food: true },
-          },
-          address: true,
-          user: {
-            select: { id: true, email: true, name: true },
-          },
+      },
+      include: {
+        items: {
+          include: { food: true },
         },
-      });
+        address: true,
+        user: {
+          select: { id: true, email: true, name: true },
+        },
+      },
+    });
 
-      // Clear Cart Items
-      await tx.cartItem.deleteMany({
-        where: { cartId: cart.id },
-      });
-
-      return createdOrder;
+    // Clear Cart Items
+    await this.prisma.cartItem.deleteMany({
+      where: { cartId: cart.id },
     });
 
     // 8. WebSocket Broadcast
@@ -139,11 +143,35 @@ export class OrdersService {
     // 10. Initialize Razorpay Payment Order
     const razorpayOrder = await this.paymentsService.createRazorpayOrder(order.id, userId);
 
+    // Send Order Confirmation Email (Fire and Forget)
+    this.emailService.sendOrderConfirmationEmail(
+      order.user.name,
+      order.user.email,
+      order.id,
+      order.total.toString(),
+    ).catch((err) => {
+      console.error('[Email Error] checkout order confirmation email failed:', err);
+    });
+
     return { order, razorpayOrder };
   }
 
-  async findAll(userId: string, role: Role) {
+  async findAll(userId: string, role: Role, restaurantId?: string) {
     if (role === Role.ADMIN) {
+      return this.prisma.order.findMany({
+        where: { restaurantId },
+        include: {
+          user: {
+            select: { id: true, email: true, name: true },
+          },
+          address: true,
+          items: { include: { food: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    if (role === Role.SUPER_ADMIN) {
       return this.prisma.order.findMany({
         include: {
           user: {
@@ -166,7 +194,7 @@ export class OrdersService {
     });
   }
 
-  async findOne(userId: string, role: Role, orderId: string) {
+  async findOne(userId: string, role: Role, orderId: string, restaurantId?: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
@@ -180,14 +208,18 @@ export class OrdersService {
       throw new NotFoundException(`Order with ID ${orderId} not found`);
     }
 
-    if (role !== Role.ADMIN && order.userId !== userId) {
+    if (role === Role.ADMIN) {
+      if (order.restaurantId !== restaurantId) {
+        throw new BadRequestException('You do not have access to view this order');
+      }
+    } else if (role !== Role.SUPER_ADMIN && order.userId !== userId) {
       throw new BadRequestException('You do not have access to view this order');
     }
 
     return order;
   }
 
-  async updateStatus(orderId: string, updateOrderStatusDto: UpdateOrderStatusDto, performedBy: string) {
+  async updateStatus(orderId: string, updateOrderStatusDto: UpdateOrderStatusDto, performedBy: string, restaurantId?: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
@@ -199,6 +231,10 @@ export class OrdersService {
 
     if (!order) {
       throw new NotFoundException(`Order with ID ${orderId} not found`);
+    }
+
+    if (restaurantId && order.restaurantId !== restaurantId) {
+      throw new BadRequestException('You do not have permission to update this order');
     }
 
     const updatedOrder = await this.prisma.order.update({
@@ -223,6 +259,29 @@ export class OrdersService {
         entityId: orderId,
       },
     });
+
+    // Send Order Status Update Email (Fire and Forget)
+    this.emailService.sendOrderStatusUpdateEmail(
+      updatedOrder.user.name,
+      updatedOrder.user.email,
+      updatedOrder.id,
+      updatedOrder.status,
+    ).catch((err) => {
+      console.error('[Email Error] status update email failed:', err);
+    });
+
+    // If status is DELIVERED, trigger Review Request Email after a brief delay (Fire and Forget)
+    if (updatedOrder.status === 'DELIVERED') {
+      setTimeout(() => {
+        this.emailService.sendReviewRequestEmail(
+          updatedOrder.user.name,
+          updatedOrder.user.email,
+          updatedOrder.id,
+        ).catch((err) => {
+          console.error('[Email Error] review request email failed:', err);
+        });
+      }, 5000); // 5 seconds delay
+    }
 
     return updatedOrder;
   }

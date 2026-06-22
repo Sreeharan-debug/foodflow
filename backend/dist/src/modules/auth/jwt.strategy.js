@@ -35,6 +35,12 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
                 role: true,
                 status: true,
                 mustChangePassword: true,
+                restaurant: {
+                    select: {
+                        id: true,
+                        status: true,
+                    },
+                },
             },
         });
         if (!user) {

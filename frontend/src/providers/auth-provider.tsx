@@ -9,10 +9,15 @@ interface User {
   id: string;
   email: string;
   name: string;
-  role: 'CUSTOMER' | 'ADMIN';
+  role: 'CUSTOMER' | 'ADMIN' | 'SUPER_ADMIN';
   status: 'ACTIVE' | 'BLOCKED';
   provider?: string;
   profileImage?: string;
+  restaurant?: {
+    id: string;
+    name: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED';
+  };
 }
 
 interface ToastInfo {
@@ -95,7 +100,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
       setUser(loggedInUser);
       showToast(`👋 Welcome back ${loggedInUser.name.split(' ')[0]}!`);
 
-      if (loggedInUser.role === 'ADMIN') {
+      if (loggedInUser.role === 'SUPER_ADMIN') {
+        router.push('/super-admin/dashboard');
+      } else if (loggedInUser.role === 'ADMIN') {
         router.push('/admin/dashboard');
       } else {
         router.push('/customer/menu');
@@ -151,7 +158,9 @@ export default function AuthProvider({ children }: { children: React.ReactNode }
         showToast(`👋 Welcome back ${firstName}!`);
       }
 
-      if (loggedInUser.role === 'ADMIN') {
+      if (loggedInUser.role === 'SUPER_ADMIN') {
+        router.push('/super-admin/dashboard');
+      } else if (loggedInUser.role === 'ADMIN') {
         router.push('/admin/dashboard');
       } else {
         router.push('/customer/menu');

@@ -87,7 +87,9 @@ export class ReviewsService {
     });
 
     // Recalculate rating
-    await this.recalculateFoodRating(review.foodId);
+    if (review.foodId) {
+      await this.recalculateFoodRating(review.foodId);
+    }
 
     // Audit log
     await this.prisma.auditLog.create({
@@ -121,7 +123,9 @@ export class ReviewsService {
     });
 
     // Recalculate rating
-    await this.recalculateFoodRating(review.foodId);
+    if (review.foodId) {
+      await this.recalculateFoodRating(review.foodId);
+    }
 
     // Audit log
     await this.prisma.auditLog.create({

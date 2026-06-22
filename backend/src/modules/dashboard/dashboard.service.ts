@@ -6,28 +6,45 @@ import { OrderStatus } from '@prisma/client';
 export class DashboardService {
   constructor(private prisma: PrismaService) {}
 
-  async getStats() {
+  async getStats(restaurantId?: string) {
+    const whereOrder: any = {};
+    const whereFood: any = {};
+    const whereCategory: any = {};
+    const whereUser: any = { role: 'CUSTOMER' };
+
+    if (restaurantId) {
+      whereOrder.restaurantId = restaurantId;
+      whereFood.restaurantId = restaurantId;
+      whereCategory.OR = [
+        { restaurantId: null },
+        { restaurantId },
+      ];
+      whereUser.orders = { some: { restaurantId } };
+    }
+
     // 1. Core counters
     const [totalOrders, totalUsers, totalFoods, totalCategories] = await Promise.all([
-      this.prisma.order.count(),
-      this.prisma.user.count({ where: { role: 'CUSTOMER' } }),
-      this.prisma.food.count(),
-      this.prisma.category.count(),
+      this.prisma.order.count({ where: whereOrder }),
+      this.prisma.user.count({ where: whereUser }),
+      this.prisma.food.count({ where: whereFood }),
+      this.prisma.category.count({ where: whereCategory }),
     ]);
 
     // 2. Active users (placed at least one order)
     const activeUsersCount = await this.prisma.user.count({
       where: {
         role: 'CUSTOMER',
-        orders: { some: {} },
+        orders: { some: restaurantId ? { restaurantId } : {} },
       },
     });
 
     // 3. Revenue calculations (excluding cancelled orders)
+    const revenueWhere = {
+      status: { not: OrderStatus.CANCELLED },
+      ...(restaurantId ? { restaurantId } : {}),
+    };
     const ordersForRevenue = await this.prisma.order.findMany({
-      where: {
-        status: { not: OrderStatus.CANCELLED },
-      },
+      where: revenueWhere,
       select: {
         total: true,
         createdAt: true,
@@ -104,7 +121,10 @@ export class DashboardService {
     // 6. Top Selling Foods
     const orderItems = await this.prisma.orderItem.findMany({
       where: {
-        order: { status: { not: OrderStatus.CANCELLED } },
+        order: {
+          status: { not: OrderStatus.CANCELLED },
+          ...(restaurantId ? { restaurantId } : {}),
+        },
       },
       include: {
         food: { select: { name: true } },
@@ -130,8 +150,10 @@ export class DashboardService {
 
     // 7. Top Selling Categories
     const categoriesList = await this.prisma.category.findMany({
+      where: whereCategory,
       include: {
         foods: {
+          where: whereFood,
           select: { id: true },
         },
       },
@@ -152,6 +174,7 @@ export class DashboardService {
 
     // 8. Recent Activity Feed
     const recentActivity = await this.prisma.order.findMany({
+      where: whereOrder,
       take: 6,
       orderBy: { createdAt: 'desc' },
       include: {

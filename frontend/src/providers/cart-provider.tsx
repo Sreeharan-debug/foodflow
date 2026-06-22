@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { useAuth } from './auth-provider';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface CartItem {
   id: string;
@@ -85,14 +86,28 @@ export default function CartProvider({ children }: { children: React.ReactNode }
 
   const total = Math.max(0, subtotal + tax - discount);
 
+  const [conflictItem, setConflictItem] = useState<{ foodId: string; quantity: number } | null>(null);
+
   const addToCart = async (foodId: string, quantity = 1) => {
     try {
       const response = await api.post('/cart/items', { foodId, quantity });
       setCartItems(response.data.items || []);
       setIsCartOpen(true);
-    } catch (error) {
-      console.error('Failed to add to cart:', error);
+    } catch (error: any) {
+      if (error.response?.status === 409) {
+        setConflictItem({ foodId, quantity });
+      } else {
+        console.error('Failed to add to cart:', error);
+      }
     }
+  };
+
+  const handleResolveConflict = async () => {
+    if (!conflictItem) return;
+    const { foodId, quantity } = conflictItem;
+    setConflictItem(null);
+    await clearCart();
+    await addToCart(foodId, quantity);
   };
 
   const updateQuantity = async (cartItemId: string, quantity: number) => {
@@ -162,6 +177,57 @@ export default function CartProvider({ children }: { children: React.ReactNode }
       }}
     >
       {children}
+
+      <AnimatePresence>
+        {conflictItem && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConflictItem(null)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Box */}
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              className="relative w-full max-w-sm glass p-6 rounded-2xl border border-orange-500/20 text-center space-y-6 shadow-2xl"
+            >
+              <div className="w-12 h-12 bg-orange-500/10 text-orange-500 border border-orange-500/20 rounded-full flex items-center justify-center mx-auto">
+                <span className="text-xl">⚠️</span>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-lg font-extrabold text-foreground font-outfit">
+                  Replace Cart Items?
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Your cart contains dishes from another restaurant. Since FoodFlow checkout supports single-kitchen orders, adding this item will clear your current selection.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  onClick={() => setConflictItem(null)}
+                  className="w-full py-2.5 border border-border/40 hover:bg-secondary/40 text-muted-foreground hover:text-foreground font-semibold rounded-xl text-xs transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleResolveConflict}
+                  className="w-full py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 hover:brightness-110 text-white font-bold rounded-xl text-xs shadow-md transition-all cursor-pointer"
+                >
+                  Clear & Add
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </CartContext.Provider>
   );
 }

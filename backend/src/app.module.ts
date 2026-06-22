@@ -14,6 +14,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
 import { EmailModule } from './modules/email/email.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
+import { SuperAdminModule } from './modules/super-admin/super-admin.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
     WebsocketModule,
     PaymentsModule,
     ReviewsModule,
+    SuperAdminModule,
   ],
 })
 export class AppModule {}

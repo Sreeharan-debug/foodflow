@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { StatusGuard } from '../../common/guards/status.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Role } from '@prisma/client';
 
 @Controller('dashboard')
@@ -13,7 +14,7 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('stats')
-  async getDashboardStats() {
-    return this.dashboardService.getStats();
+  async getDashboardStats(@CurrentUser() adminUser: any) {
+    return this.dashboardService.getStats(adminUser.restaurant?.id);
   }
 }

@@ -49,6 +49,12 @@ let CartService = class CartService {
         if (!food || !food.isAvailable) {
             throw new common_1.NotFoundException('Food item is not available or does not exist');
         }
+        if (cart.items.length > 0) {
+            const firstItem = cart.items[0];
+            if (firstItem.food.restaurantId && food.restaurantId && firstItem.food.restaurantId !== food.restaurantId) {
+                throw new common_1.ConflictException('All items in the cart must belong to the same restaurant');
+            }
+        }
         const existingItem = await this.prisma.cartItem.findUnique({
             where: {
                 cartId_foodId: {
@@ -77,13 +83,19 @@ let CartService = class CartService {
     async updateItem(userId, cartItemId, updateCartItemDto) {
         const cart = await this.getOrCreateCart(userId);
         const item = await this.prisma.cartItem.findFirst({
-            where: { id: cartItemId, cartId: cart.id },
+            where: {
+                cartId: cart.id,
+                OR: [
+                    { id: cartItemId },
+                    { foodId: cartItemId },
+                ],
+            },
         });
         if (!item) {
             throw new common_1.NotFoundException('Cart item not found');
         }
         await this.prisma.cartItem.update({
-            where: { id: cartItemId },
+            where: { id: item.id },
             data: { quantity: updateCartItemDto.quantity },
         });
         return this.getOrCreateCart(userId);
@@ -91,13 +103,19 @@ let CartService = class CartService {
     async removeItem(userId, cartItemId) {
         const cart = await this.getOrCreateCart(userId);
         const item = await this.prisma.cartItem.findFirst({
-            where: { id: cartItemId, cartId: cart.id },
+            where: {
+                cartId: cart.id,
+                OR: [
+                    { id: cartItemId },
+                    { foodId: cartItemId },
+                ],
+            },
         });
         if (!item) {
             throw new common_1.NotFoundException('Cart item not found');
         }
         await this.prisma.cartItem.delete({
-            where: { id: cartItemId },
+            where: { id: item.id },
         });
         return this.getOrCreateCart(userId);
     }

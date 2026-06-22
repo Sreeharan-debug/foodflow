@@ -18,23 +18,38 @@ let DashboardService = class DashboardService {
     constructor(prisma) {
         this.prisma = prisma;
     }
-    async getStats() {
+    async getStats(restaurantId) {
+        const whereOrder = {};
+        const whereFood = {};
+        const whereCategory = {};
+        const whereUser = { role: 'CUSTOMER' };
+        if (restaurantId) {
+            whereOrder.restaurantId = restaurantId;
+            whereFood.restaurantId = restaurantId;
+            whereCategory.OR = [
+                { restaurantId: null },
+                { restaurantId },
+            ];
+            whereUser.orders = { some: { restaurantId } };
+        }
         const [totalOrders, totalUsers, totalFoods, totalCategories] = await Promise.all([
-            this.prisma.order.count(),
-            this.prisma.user.count({ where: { role: 'CUSTOMER' } }),
-            this.prisma.food.count(),
-            this.prisma.category.count(),
+            this.prisma.order.count({ where: whereOrder }),
+            this.prisma.user.count({ where: whereUser }),
+            this.prisma.food.count({ where: whereFood }),
+            this.prisma.category.count({ where: whereCategory }),
         ]);
         const activeUsersCount = await this.prisma.user.count({
             where: {
                 role: 'CUSTOMER',
-                orders: { some: {} },
+                orders: { some: restaurantId ? { restaurantId } : {} },
             },
         });
+        const revenueWhere = {
+            status: { not: client_1.OrderStatus.CANCELLED },
+            ...(restaurantId ? { restaurantId } : {}),
+        };
         const ordersForRevenue = await this.prisma.order.findMany({
-            where: {
-                status: { not: client_1.OrderStatus.CANCELLED },
-            },
+            where: revenueWhere,
             select: {
                 total: true,
                 createdAt: true,
@@ -93,7 +108,10 @@ let DashboardService = class DashboardService {
         });
         const orderItems = await this.prisma.orderItem.findMany({
             where: {
-                order: { status: { not: client_1.OrderStatus.CANCELLED } },
+                order: {
+                    status: { not: client_1.OrderStatus.CANCELLED },
+                    ...(restaurantId ? { restaurantId } : {}),
+                },
             },
             include: {
                 food: { select: { name: true } },
@@ -115,8 +133,10 @@ let DashboardService = class DashboardService {
             .sort((a, b) => b.quantity - a.quantity)
             .slice(0, 5);
         const categoriesList = await this.prisma.category.findMany({
+            where: whereCategory,
             include: {
                 foods: {
+                    where: whereFood,
                     select: { id: true },
                 },
             },
@@ -133,6 +153,7 @@ let DashboardService = class DashboardService {
             };
         }).sort((a, b) => b.quantity - a.quantity).slice(0, 5);
         const recentActivity = await this.prisma.order.findMany({
+            where: whereOrder,
             take: 6,
             orderBy: { createdAt: 'desc' },
             include: {

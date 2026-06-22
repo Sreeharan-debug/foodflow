@@ -50,6 +50,9 @@ let FoodsService = class FoodsService {
         if (popular) {
             where.rating = { gte: 4.7 };
         }
+        if (query.restaurantId) {
+            where.restaurantId = query.restaurantId;
+        }
         let orderBy = { name: 'asc' };
         if (sort === 'price_asc') {
             orderBy = { price: 'asc' };
@@ -87,8 +90,9 @@ let FoodsService = class FoodsService {
             totalPages,
         };
     }
-    async findAllAdmin() {
+    async findAllAdmin(restaurantId) {
         return this.prisma.food.findMany({
+            where: { restaurantId },
             include: { category: true },
             orderBy: { createdAt: 'desc' },
         });
@@ -133,7 +137,7 @@ let FoodsService = class FoodsService {
         }
         return food;
     }
-    async create(createFoodDto, imageUrl, performedBy) {
+    async create(createFoodDto, imageUrl, performedBy, restaurantId) {
         const category = await this.prisma.category.findUnique({
             where: { id: createFoodDto.categoryId },
         });
@@ -146,6 +150,7 @@ let FoodsService = class FoodsService {
                 description: createFoodDto.description,
                 price: new client_1.Prisma.Decimal(createFoodDto.price),
                 categoryId: createFoodDto.categoryId,
+                restaurantId,
                 imageUrl: imageUrl || createFoodDto.imageUrl || '',
                 rating: createFoodDto.rating !== undefined ? createFoodDto.rating : 5.0,
                 preparationTime: createFoodDto.preparationTime,
@@ -168,8 +173,11 @@ let FoodsService = class FoodsService {
         });
         return food;
     }
-    async update(id, updateFoodDto, imageUrl, performedBy) {
-        await this.findOne(id);
+    async update(id, updateFoodDto, imageUrl, performedBy, restaurantId) {
+        const existingFood = await this.findOne(id);
+        if (existingFood.restaurantId !== restaurantId) {
+            throw new common_1.NotFoundException(`Food item with ID ${id} not found or you do not have permission to modify it`);
+        }
         if (updateFoodDto.categoryId) {
             const category = await this.prisma.category.findUnique({
                 where: { id: updateFoodDto.categoryId },
@@ -226,8 +234,11 @@ let FoodsService = class FoodsService {
         });
         return food;
     }
-    async remove(id, performedBy) {
-        await this.findOne(id);
+    async remove(id, performedBy, restaurantId) {
+        const existingFood = await this.findOne(id);
+        if (existingFood.restaurantId !== restaurantId) {
+            throw new common_1.NotFoundException(`Food item with ID ${id} not found or you do not have permission to delete it`);
+        }
         await this.prisma.food.delete({ where: { id } });
         await this.prisma.auditLog.create({
             data: {
@@ -238,6 +249,21 @@ let FoodsService = class FoodsService {
             },
         });
         return { message: 'Food item deleted successfully' };
+    }
+    async getRestaurants() {
+        return this.prisma.restaurant.findMany({
+            where: { status: 'APPROVED' },
+            orderBy: { name: 'asc' },
+        });
+    }
+    async getRestaurant(id) {
+        const restaurant = await this.prisma.restaurant.findFirst({
+            where: { id, status: 'APPROVED' },
+        });
+        if (!restaurant) {
+            throw new common_1.NotFoundException(`Restaurant with ID ${id} not found`);
+        }
+        return restaurant;
     }
 };
 exports.FoodsService = FoodsService;

@@ -2,7 +2,7 @@ import { DashboardService } from './dashboard.service';
 export declare class DashboardController {
     private readonly dashboardService;
     constructor(dashboardService: DashboardService);
-    getDashboardStats(): Promise<{
+    getDashboardStats(adminUser: any): Promise<{
         kpis: {
             totalOrders: number;
             totalUsers: number;
@@ -22,7 +22,7 @@ export declare class DashboardController {
             orders: number;
         }[];
         ordersByStatus: {
-            status: "DELIVERED" | "CONFIRMED" | "PREPARING" | "PENDING" | "OUT_FOR_DELIVERY" | "CANCELLED";
+            status: "PENDING" | "DELIVERED" | "CONFIRMED" | "PREPARING" | "OUT_FOR_DELIVERY" | "CANCELLED";
             count: number;
         }[];
         topSellingFoods: {

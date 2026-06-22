@@ -39,15 +39,16 @@ export class FoodsController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('isVeg') isVeg?: string,
+    @Query('restaurantId') restaurantId?: string,
   ) {
-    return this.foodsService.findAll({ search, categoryId, featured, popular, sort, page, limit, isVeg });
+    return this.foodsService.findAll({ search, categoryId, featured, popular, sort, page, limit, isVeg, restaurantId });
   }
 
   @Get('admin')
   @UseGuards(JwtAuthGuard, StatusGuard, RolesGuard)
   @Roles(Role.ADMIN)
-  async getFoodsAdmin() {
-    return this.foodsService.findAllAdmin();
+  async getFoodsAdmin(@CurrentUser() adminUser: any) {
+    return this.foodsService.findAllAdmin(adminUser.restaurant?.id);
   }
 
   @Get('featured')
@@ -58,6 +59,16 @@ export class FoodsController {
   @Get('popular')
   async getPopularFoods() {
     return this.foodsService.findPopular();
+  }
+
+  @Get('restaurants')
+  async getRestaurants() {
+    return this.foodsService.getRestaurants();
+  }
+
+  @Get('restaurants/:id')
+  async getRestaurantById(@Param('id') id: string) {
+    return this.foodsService.getRestaurant(id);
   }
 
   @Get(':id')
@@ -72,13 +83,13 @@ export class FoodsController {
   async createFood(
     @Body() createFoodDto: CreateFoodDto,
     @UploadedFile() file: any,
-    @CurrentUser('email') adminEmail: string,
+    @CurrentUser() adminUser: any,
   ) {
     let imageUrl = '';
     if (file) {
       imageUrl = await this.cloudinaryService.uploadImage(file);
     }
-    return this.foodsService.create(createFoodDto, imageUrl, adminEmail);
+    return this.foodsService.create(createFoodDto, imageUrl, adminUser.email, adminUser.restaurant?.id);
   }
 
   @Put(':id')
@@ -89,13 +100,13 @@ export class FoodsController {
     @Param('id') id: string,
     @Body() updateFoodDto: UpdateFoodDto,
     @UploadedFile() file: any,
-    @CurrentUser('email') adminEmail: string,
+    @CurrentUser() adminUser: any,
   ) {
     let imageUrl = '';
     if (file) {
       imageUrl = await this.cloudinaryService.uploadImage(file);
     }
-    return this.foodsService.update(id, updateFoodDto, imageUrl, adminEmail);
+    return this.foodsService.update(id, updateFoodDto, imageUrl, adminUser.email, adminUser.restaurant?.id);
   }
 
   @Delete(':id')
@@ -103,8 +114,8 @@ export class FoodsController {
   @Roles(Role.ADMIN)
   async deleteFood(
     @Param('id') id: string,
-    @CurrentUser('email') adminEmail: string,
+    @CurrentUser() adminUser: any,
   ) {
-    return this.foodsService.remove(id, adminEmail);
+    return this.foodsService.remove(id, adminUser.email, adminUser.restaurant?.id);
   }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -13,8 +13,8 @@ export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Get()
-  async getCategories() {
-    return this.categoriesService.findAll();
+  async getCategories(@Query('restaurantId') restaurantId?: string) {
+    return this.categoriesService.findAll(restaurantId);
   }
 
   @Get(':id')
@@ -27,9 +27,9 @@ export class CategoriesController {
   @Roles(Role.ADMIN)
   async createCategory(
     @Body() createCategoryDto: CreateCategoryDto,
-    @CurrentUser('email') adminEmail: string,
+    @CurrentUser() adminUser: any,
   ) {
-    return this.categoriesService.create(createCategoryDto, adminEmail);
+    return this.categoriesService.create(createCategoryDto, adminUser.email, adminUser.restaurant?.id);
   }
 
   @Put(':id')
@@ -38,9 +38,9 @@ export class CategoriesController {
   async updateCategory(
     @Param('id') id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
-    @CurrentUser('email') adminEmail: string,
+    @CurrentUser() adminUser: any,
   ) {
-    return this.categoriesService.update(id, updateCategoryDto, adminEmail);
+    return this.categoriesService.update(id, updateCategoryDto, adminUser.email, adminUser.restaurant?.id);
   }
 
   @Delete(':id')
@@ -48,8 +48,8 @@ export class CategoriesController {
   @Roles(Role.ADMIN)
   async deleteCategory(
     @Param('id') id: string,
-    @CurrentUser('email') adminEmail: string,
+    @CurrentUser() adminUser: any,
   ) {
-    return this.categoriesService.remove(id, adminEmail);
+    return this.categoriesService.remove(id, adminUser.email, adminUser.restaurant?.id);
   }
 }

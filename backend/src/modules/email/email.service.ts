@@ -1,9 +1,27 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { Resend } from 'resend';
 
 @Injectable()
 export class EmailService {
-  constructor(private prisma: PrismaService) {}
+  private resend: Resend | null = null;
+  private enabled = false;
+
+  constructor(private prisma: PrismaService) {
+    const resendApiKey = process.env.RESEND_API_KEY;
+
+    if (!resendApiKey || resendApiKey.startsWith('mock')) {
+      console.warn('[EmailService] RESEND_API_KEY is missing or set to mock. Email sending will be in MOCK mode.');
+    } else {
+      try {
+        this.resend = new Resend(resendApiKey);
+        this.enabled = true;
+        console.log('[EmailService] Resend client initialized successfully.');
+      } catch (err) {
+        console.error('[EmailService] Failed to initialize Resend client:', err);
+      }
+    }
+  }
 
   async sendWelcomeEmail(firstName: string, email: string) {
     const subject = 'Welcome to FOODFLOW 🍽️';
@@ -182,42 +200,202 @@ export class EmailService {
     await this.sendMail(email, subject, html);
   }
 
-  private async sendMail(to: string, subject: string, html: string) {
-    const resendApiKey = process.env.RESEND_API_KEY;
+  async sendPaymentSuccessEmailWithAttachment(
+    email: string,
+    firstName: string,
+    paymentId: string,
+    orderId: string,
+    amount: string,
+    filename: string,
+    pdfBuffer: Buffer,
+  ) {
+    const subject = `Payment Successful & Invoice: ₹${parseFloat(amount).toFixed(2)} 💳`;
+    const base64Content = pdfBuffer.toString('base64');
+
+    const html = `
+      <div style="font-family: 'Outfit', 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; max-width: 550px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+        <!-- Header Banner -->
+        <div style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); padding: 32px 24px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">Payment Successful!</h1>
+          <p style="color: rgba(255, 255, 255, 0.9); margin: 4px 0 0 0; font-size: 14px; font-weight: 500;">Receipt & Transaction Invoice Attached</p>
+        </div>
+        
+        <!-- Body Content -->
+        <div style="padding: 32px 24px; background-color: #ffffff;">
+          <h2 style="color: #111827; margin: 0 0 16px 0; font-size: 18px; font-weight: 700;">Hi ${firstName},</h2>
+          <p style="font-size: 15px; color: #4b5563; margin-bottom: 20px; line-height: 1.6;">
+            Thank you! Your payment of <strong>₹${parseFloat(amount).toFixed(2)}</strong> has been successfully processed via Razorpay.
+          </p>
+          <p style="font-size: 14.5px; color: #4b5563; margin-bottom: 20px;">
+            We have generated a PDF invoice for this order and attached it to this email. You can also view it on your profile dashboard.
+          </p>
+
+          <div style="background-color: #f9fafb; border: 1px solid #f3f4f6; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
+              <span style="color: #6b7280;">Transaction ID:</span>
+              <span style="font-weight: 600; color: #111827;">${paymentId}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px;">
+              <span style="color: #6b7280;">Order Reference:</span>
+              <span style="font-weight: 600; color: #111827;">#${orderId.substring(0, 8).toUpperCase()}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; border-top: 1px dashed #e5e7eb; padding-top: 8px; margin-top: 8px;">
+              <span style="color: #111827;">Amount Paid:</span>
+              <span style="color: #4f46e5;">₹${parseFloat(amount).toFixed(2)}</span>
+            </div>
+          </div>
+          
+          <p style="font-size: 14px; color: #6b7280; margin: 24px 0 0 0; border-top: 1px solid #f3f4f6; padding-top: 16px;">
+            If you have any questions, feel free to reply directly to this email.<br />
+            <strong>The FOODFLOW Team</strong>
+          </p>
+        </div>
+      </div>
+    `;
+
+    await this.sendMail(email, subject, html, [{ filename, content: base64Content }]);
+  }
+
+  async sendOrderStatusUpdateEmail(fullName: string, email: string, orderId: string, status: string) {
+    const firstName = fullName.split(' ')[0];
+    let statusText = status;
+    let statusColor = '#f97316';
+    let emoji = '📦';
+
+    if (status === 'CONFIRMED') {
+      statusText = 'Confirmed';
+      statusColor = '#10b981';
+      emoji = '✅';
+    } else if (status === 'PREPARING') {
+      statusText = 'Preparing';
+      statusColor = '#ea580c';
+      emoji = '👨‍🍳';
+    } else if (status === 'OUT_FOR_DELIVERY') {
+      statusText = 'Out for Delivery';
+      statusColor = '#3b82f6';
+      emoji = '🛵';
+    } else if (status === 'DELIVERED') {
+      statusText = 'Delivered';
+      statusColor = '#10b981';
+      emoji = '🎉';
+    } else if (status === 'CANCELLED') {
+      statusText = 'Cancelled';
+      statusColor = '#ef4444';
+      emoji = '❌';
+    } else if (status === 'PENDING') {
+      statusText = 'Pending';
+      statusColor = '#eab308';
+      emoji = '⏳';
+    }
+
+    const subject = `Your FOODFLOW Order is ${statusText} ${emoji}`;
+
+    const html = `
+      <div style="font-family: 'Outfit', 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; max-width: 550px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+        <!-- Header Banner -->
+        <div style="background: linear-gradient(135deg, ${statusColor} 0%, #1f2937 100%); padding: 32px 24px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">Order ${statusText}!</h1>
+          <p style="color: rgba(255, 255, 255, 0.9); margin: 4px 0 0 0; font-size: 14px; font-weight: 500;">Order ID: #${orderId.toUpperCase()}</p>
+        </div>
+        
+        <!-- Body Content -->
+        <div style="padding: 32px 24px; background-color: #ffffff;">
+          <h2 style="color: #111827; margin: 0 0 16px 0; font-size: 18px; font-weight: 700;">Hi ${firstName},</h2>
+          <p style="font-size: 15px; color: #4b5563; margin-bottom: 20px; line-height: 1.6;">
+            Your order status has been updated to <strong>${statusText}</strong>.
+          </p>
+          
+          <div style="background-color: #f9fafb; border: 1px solid #f3f4f6; border-radius: 12px; padding: 20px; margin-bottom: 24px; text-align: center;">
+            <span style="font-size: 48px;">${emoji}</span>
+            <h3 style="margin: 12px 0 4px 0; color: #111827; font-size: 18px;">${statusText}</h3>
+            <p style="margin: 0; font-size: 14px; color: #6b7280;">We are processing your order as fast as possible.</p>
+          </div>
+
+          <div style="text-align: center; margin-bottom: 24px;">
+            <a href="http://localhost:3000/customer/orders" style="background: #ea580c; color: #ffffff; padding: 12px 28px; border-radius: 8px; font-weight: bold; text-decoration: none; display: inline-block; font-size: 15px; box-shadow: 0 4px 6px rgba(234, 88, 12, 0.15);">Track Your Order</a>
+          </div>
+
+          <p style="font-size: 14px; color: #6b7280; margin: 24px 0 0 0; border-top: 1px solid #f3f4f6; padding-top: 16px;">
+            Thank you for choosing FOODFLOW!<br />
+            <strong>The FOODFLOW Team</strong>
+          </p>
+        </div>
+      </div>
+    `;
+
+    await this.sendMail(email, subject, html);
+  }
+
+  async sendReviewRequestEmail(fullName: string, email: string, orderId: string) {
+    const firstName = fullName.split(' ')[0];
+    const subject = 'How was your meal? ⭐';
+
+    const html = `
+      <div style="font-family: 'Outfit', 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1f2937; max-width: 550px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+        <!-- Header Banner -->
+        <div style="background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%); padding: 32px 24px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">How was your meal?</h1>
+          <p style="color: rgba(255, 255, 255, 0.9); margin: 4px 0 0 0; font-size: 14px; font-weight: 500;">Order ID: #${orderId.toUpperCase()}</p>
+        </div>
+        
+        <!-- Body Content -->
+        <div style="padding: 32px 24px; background-color: #ffffff;">
+          <h2 style="color: #111827; margin: 0 0 16px 0; font-size: 18px; font-weight: 700;">Hi ${firstName},</h2>
+          <p style="font-size: 15px; color: #4b5563; margin-bottom: 20px; line-height: 1.6;">
+            We hope you enjoyed your recent order from FOODFLOW! We would love to hear your feedback on the food and service.
+          </p>
+
+          <div style="text-align: center; margin-bottom: 24px; padding: 12px 0;">
+            <span style="font-size: 24px; color: #f59e0b; letter-spacing: 4px;">⭐⭐⭐⭐⭐</span>
+          </div>
+
+          <div style="text-align: center; margin-bottom: 24px;">
+            <a href="http://localhost:3000/customer/orders" style="background: #ea580c; color: #ffffff; padding: 12px 28px; border-radius: 8px; font-weight: bold; text-decoration: none; display: inline-block; font-size: 15px; box-shadow: 0 4px 6px rgba(234, 88, 12, 0.15);">Write a Review</a>
+          </div>
+
+          <p style="font-size: 14px; color: #6b7280; margin: 24px 0 0 0; border-top: 1px solid #f3f4f6; padding-top: 16px;">
+            Thank you for your feedback!<br />
+            <strong>The FOODFLOW Team</strong>
+          </p>
+        </div>
+      </div>
+    `;
+
+    await this.sendMail(email, subject, html);
+  }
+
+  private async sendMail(to: string, subject: string, html: string, attachments?: { filename: string; content: any }[]) {
     const fromEmail = process.env.EMAIL_FROM || 'FOODFLOW <onboarding@resend.dev>';
 
-    if (!resendApiKey) {
-      const errMsg = 'Resend API key is not configured on the server.';
-      console.error(`[EmailService] ${errMsg}`);
-      throw new Error(errMsg);
+    if (!this.enabled || !this.resend) {
+      console.log(`[EmailService] [MOCK EMAIL] Sent to: ${to}, Subject: ${subject}`);
+      if (attachments && attachments.length > 0) {
+        console.log(`[EmailService] [MOCK EMAIL] Attachments: ${attachments.map(a => a.filename).join(', ')}`);
+      }
+      return;
     }
 
     try {
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${resendApiKey}`,
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: [to],
-          subject,
-          html,
-        }),
+      const mappedAttachments = attachments?.map(att => ({
+        filename: att.filename,
+        content: typeof att.content === 'string' ? Buffer.from(att.content, 'base64') : att.content
+      }));
+
+      const { data, error } = await this.resend.emails.send({
+        from: fromEmail,
+        to: [to],
+        subject,
+        html,
+        attachments: mappedAttachments,
       });
 
-      if (!response.ok) {
-        const errText = await response.text();
-        const errMsg = `Resend API failed: ${errText}`;
-        console.error(`[EmailService] ${errMsg}`);
-        throw new Error(errMsg);
+      if (error) {
+        console.error('[EmailService] Resend API error:', error);
       } else {
-        console.log(`[EmailService] Resend successfully sent email to ${to}`);
+        console.log(`[EmailService] Resend successfully sent email to ${to}, ID: ${data?.id}`);
       }
     } catch (err: any) {
       console.error('[EmailService] Resend transmission failed:', err);
-      throw err;
     }
   }
 }

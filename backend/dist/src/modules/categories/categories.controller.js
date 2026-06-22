@@ -27,27 +27,28 @@ let CategoriesController = class CategoriesController {
     constructor(categoriesService) {
         this.categoriesService = categoriesService;
     }
-    async getCategories() {
-        return this.categoriesService.findAll();
+    async getCategories(restaurantId) {
+        return this.categoriesService.findAll(restaurantId);
     }
     async getCategoryById(id) {
         return this.categoriesService.findOne(id);
     }
-    async createCategory(createCategoryDto, adminEmail) {
-        return this.categoriesService.create(createCategoryDto, adminEmail);
+    async createCategory(createCategoryDto, adminUser) {
+        return this.categoriesService.create(createCategoryDto, adminUser.email, adminUser.restaurant?.id);
     }
-    async updateCategory(id, updateCategoryDto, adminEmail) {
-        return this.categoriesService.update(id, updateCategoryDto, adminEmail);
+    async updateCategory(id, updateCategoryDto, adminUser) {
+        return this.categoriesService.update(id, updateCategoryDto, adminUser.email, adminUser.restaurant?.id);
     }
-    async deleteCategory(id, adminEmail) {
-        return this.categoriesService.remove(id, adminEmail);
+    async deleteCategory(id, adminUser) {
+        return this.categoriesService.remove(id, adminUser.email, adminUser.restaurant?.id);
     }
 };
 exports.CategoriesController = CategoriesController;
 __decorate([
     (0, common_1.Get)(),
+    __param(0, (0, common_1.Query)('restaurantId')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
+    __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], CategoriesController.prototype, "getCategories", null);
 __decorate([
@@ -62,9 +63,9 @@ __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, status_guard_1.StatusGuard, roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
     __param(0, (0, common_1.Body)()),
-    __param(1, (0, current_user_decorator_1.CurrentUser)('email')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [category_dto_1.CreateCategoryDto, String]),
+    __metadata("design:paramtypes", [category_dto_1.CreateCategoryDto, Object]),
     __metadata("design:returntype", Promise)
 ], CategoriesController.prototype, "createCategory", null);
 __decorate([
@@ -73,9 +74,9 @@ __decorate([
     (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
-    __param(2, (0, current_user_decorator_1.CurrentUser)('email')),
+    __param(2, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, category_dto_1.UpdateCategoryDto, String]),
+    __metadata("design:paramtypes", [String, category_dto_1.UpdateCategoryDto, Object]),
     __metadata("design:returntype", Promise)
 ], CategoriesController.prototype, "updateCategory", null);
 __decorate([
@@ -83,9 +84,9 @@ __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, status_guard_1.StatusGuard, roles_guard_1.RolesGuard),
     (0, roles_decorator_1.Roles)(client_1.Role.ADMIN),
     __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, current_user_decorator_1.CurrentUser)('email')),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", Promise)
 ], CategoriesController.prototype, "deleteCategory", null);
 exports.CategoriesController = CategoriesController = __decorate([

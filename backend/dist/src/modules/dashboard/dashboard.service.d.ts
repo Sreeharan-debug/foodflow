@@ -2,7 +2,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 export declare class DashboardService {
     private prisma;
     constructor(prisma: PrismaService);
-    getStats(): Promise<{
+    getStats(restaurantId?: string): Promise<{
         kpis: {
             totalOrders: number;
             totalUsers: number;
@@ -22,7 +22,7 @@ export declare class DashboardService {
             orders: number;
         }[];
         ordersByStatus: {
-            status: "DELIVERED" | "CONFIRMED" | "PREPARING" | "PENDING" | "OUT_FOR_DELIVERY" | "CANCELLED";
+            status: "PENDING" | "DELIVERED" | "CONFIRMED" | "PREPARING" | "OUT_FOR_DELIVERY" | "CANCELLED";
             count: number;
         }[];
         topSellingFoods: {
