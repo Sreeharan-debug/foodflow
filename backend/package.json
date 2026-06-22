@@ -45,6 +45,8 @@
   "devDependencies": {
     "@angular-devkit/core": "^21.2.16",
     "@angular-devkit/schematics": "^21.2.16",
+    "@emnapi/core": "1.11.1",
+    "@emnapi/runtime": "1.11.1",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
     "@nestjs/cli": "^11.0.0",
