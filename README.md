@@ -524,10 +524,10 @@ Distributed under the MIT License. See [LICENSE](LICENSE) for more details.
 ## 👤 Developer Information
 
 * **Project Name**: FOODFLOW 4.1
-* **Developer Name**: Sreeharan Nair
-* **Contact Email**: `sreeharan.dev@gmail.com`
-* **GitHub Profile**: [sreeharan-nair](https://github.com/sreeharan-nair)
-* **Linked In**: [Sreeharan Nair Profile](https://linkedin.com/in/sreeharan-nair)
+* **Developer Name**: Sreeharan M Anilkumar
+* **Contact Email**: `sreeharanma@gmail.com`
+* **GitHub Profile**: [sreeharan-debug](https://github.com/sreeharan-debug)
+* **Linked In**: [Sreeharan M Anilkumar Profile](www.linkedin.com/in/sreeharan-m-anilkumar-8853a1351)
 
 ---
 *Created and maintained with ❤️ for FOODFLOW 4.1 Enterprise Marketplace.*
