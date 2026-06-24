@@ -30,11 +30,9 @@ Built on a modern decoupled stack featuring **Next.js 16/15 (App Router)** and *
 14. [Authentication Flow](#-authentication-flow)
 15. [User Roles and Permissions](#-user-roles-and-permissions)
 16. [Deployment Instructions](#-deployment-instructions)
-17. [Screenshots](#-screenshots)
-18. [Future Enhancements](#-future-enhancements)
-19. [Contributing Guidelines](#-contributing-guidelines)
-20. [License](#-license)
-21. [Developer Information](#-developer-information)
+17. [Future Enhancements](#-future-enhancements)
+18. [Contributing Guidelines](#-contributing-guidelines)
+19. [License](#-license)
 
 ---
 
@@ -505,16 +503,6 @@ We welcome contributions to FOODFLOW! Follow these steps:
 ## 📄 License
 
 Distributed under the MIT License. See [LICENSE](LICENSE) for more details.
-
----
-
-## 👤 Developer Information
-
-* **Project Name**: FOODFLOW 4.1
-* **Developer Name**: Sreeharan M Anilkumar
-* **Contact Email**: `sreeharanma@gmail.com`
-* **GitHub Profile**: [sreeharan-debug](https://github.com/sreeharan-debug)
-* **Linked In**: [Sreeharan M Anilkumar Profile](www.linkedin.com/in/sreeharan-m-anilkumar-8853a1351)
 
 ---
 *Created and maintained with ❤️ for FOODFLOW 4.1 Enterprise Marketplace.*
