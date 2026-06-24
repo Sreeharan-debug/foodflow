@@ -472,19 +472,6 @@ The application uses role-based security controls to guarantee separation of dut
 
 ---
 
-## 🖼️ Screenshots
-
-*Place screenshots here to showcase your beautiful visual designs:*
-
-| Page | Mobile View | Desktop View |
-| :--- | :--- | :--- |
-| **Customer Marketplace** | *[Placeholder for Customer Menu]* | *[Placeholder for Customer Desktop Menu]* |
-| **Order Progress Tracking** | *[Placeholder for Live Track Timeline]* | *[Placeholder for Live Track Timeline]* |
-| **Vendor Admin Queue** | *[Placeholder for Incoming Live Queue]* | *[Placeholder for Incoming Live Queue]* |
-| **Super Admin Dashboard** | *[Placeholder for Admin Status Grid]* | *[Placeholder for Admin Status Grid]* |
-
----
-
 ## 🔮 Future Enhancements
 
 * **AI Dish Recommendation Engine**: Generate flavor profile matches based on historic customer orders.
@@ -524,10 +511,10 @@ Distributed under the MIT License. See [LICENSE](LICENSE) for more details.
 ## 👤 Developer Information
 
 * **Project Name**: FOODFLOW 4.1
-* **Developer Name**: Sreeharan Nair
-* **Contact Email**: `sreeharan.dev@gmail.com`
-* **GitHub Profile**: [sreeharan-nair](https://github.com/sreeharan-nair)
-* **Linked In**: [Sreeharan Nair Profile](https://linkedin.com/in/sreeharan-nair)
+* **Developer Name**: Sreeharan M Anilkumar
+* **Contact Email**: `sreeharanma@gmail.com`
+* **GitHub Profile**: [sreeharan-debug](https://github.com/sreeharan-debug)
+* **Linked In**: [Sreeharan M Anilkumar Profile](www.linkedin.com/in/sreeharan-m-anilkumar-8853a1351)
 
 ---
 *Created and maintained with ❤️ for FOODFLOW 4.1 Enterprise Marketplace.*
