@@ -472,19 +472,6 @@ The application uses role-based security controls to guarantee separation of dut
 
 ---
 
-## 🖼️ Screenshots
-
-*Place screenshots here to showcase your beautiful visual designs:*
-
-| Page | Desktop View |
-| :--- | :--- |
-| **Customer Marketplace** | *[Placeholder for Customer Desktop Menu]* |
-| **Order Progress Tracking** | *[Placeholder for Live Track Timeline]* |
-| **Vendor Admin Queue** | *[Placeholder for Incoming Live Queue]* |
-| **Super Admin Dashboard** | *[Placeholder for Admin Status Grid]* |
-
----
-
 ## 🔮 Future Enhancements
 
 * **AI Dish Recommendation Engine**: Generate flavor profile matches based on historic customer orders.
