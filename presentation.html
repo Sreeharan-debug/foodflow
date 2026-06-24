@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FOODFLOW 4.1 — Project Presentation</title>
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    /* Premium CSS variables for colors and design tokens */
+    :root {
+      --bg-dark: #0b0f19;
+      --bg-card: rgba(17, 24, 39, 0.7);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --primary: #6366f1; /* Indigo */
+      --secondary: #06b6d4; /* Cyan */
+      --accent: #a855f7; /* Purple */
+      --success: #10b981; /* Emerald */
+      --font-display: 'Outfit', sans-serif;
+      --font-body: 'Inter', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      position: relative;
+    }
+
+    /* Ambient background glows */
+    .glow-circle {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(130px);
+      z-index: 1;
+      opacity: 0.45;
+      pointer-events: none;
+    }
+    .glow-1 {
+      top: -10%;
+      left: -10%;
+      width: 50vw;
+      height: 50vw;
+      background: radial-gradient(circle, var(--primary) 0%, transparent 70%);
+    }
+    .glow-2 {
+      bottom: -10%;
+      right: -10%;
+      width: 50vw;
+      height: 50vw;
+      background: radial-gradient(circle, var(--secondary) 0%, transparent 70%);
+    }
+    .glow-3 {
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 40vw;
+      height: 40vw;
+      background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+      opacity: 0.15;
+    }
+
+    /* App Shell Layout */
+    .presentation-container {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* Top Progress Bar & Header */
+    header {
+      padding: 20px 40px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-logo {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.5rem;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--secondary), var(--primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border-left: 1px solid var(--border-color);
+      padding-left: 12px;
+      margin-top: 2px;
+    }
+    .header-info {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-align: right;
+    }
+
+    .progress-bar-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.05);
+      z-index: 100;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--secondary), var(--primary), var(--accent));
+      width: 8.33%; /* Calculated by js */
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Slides viewport */
+    .slides-viewport {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px 40px;
+      position: relative;
+    }
+
+    .slide {
+      position: absolute;
+      width: calc(100% - 80px);
+      height: calc(100% - 40px);
+      max-width: 1300px;
+      max-height: 750px;
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 50px 60px;
+      opacity: 0;
+      transform: scale(0.96) translateY(20px);
+      transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+      pointer-events: auto;
+      z-index: 10;
+    }
+
+    /* Slide Typography */
+    .slide h2 {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 30px;
+      background: linear-gradient(to right, #ffffff, #d1d5db);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .slide h2::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, var(--primary), transparent);
+    }
+
+    /* Footer & Controls */
+    footer {
+      padding: 10px 40px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 20;
+    }
+    .slide-counter {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 10px 20px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+    }
+    .btn:active {
+      transform: translateY(1px);
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border: none;
+    }
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+    .select-dropdown {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 10px 15px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .select-dropdown option {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+    }
+
+    /* Content components */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      flex: 1;
+      align-items: center;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 25px;
+      flex: 1;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      flex: 1;
+    }
+
+    .flex-column {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      justify-content: center;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 24px;
+      transition: all 0.3s ease;
+    }
+    .card:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.1);
+      transform: translateY(-4px);
+    }
+    .card h3 {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      margin-bottom: 12px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Highlight list items */
+    .list-items {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .list-items li {
+      position: relative;
+      padding-left: 32px;
+      font-size: 1.05rem;
+      line-height: 1.5;
+    }
+    .list-items li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: var(--secondary);
+      font-weight: bold;
+      background: rgba(6, 182, 212, 0.1);
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+    }
+
+    /* Slide specific styling */
+    /* Slide 1 - Title */
+    .title-slide-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      height: 100%;
+      gap: 20px;
+    }
+    .title-badge {
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      color: #818cf8;
+      padding: 8px 20px;
+      border-radius: 30px;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-weight: 600;
+    }
+    .main-title {
+      font-family: var(--font-display);
+      font-size: 4rem;
+      font-weight: 800;
+      line-height: 1.1;
+      background: linear-gradient(to right, #ffffff, #9ca3af);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 10px 0;
+    }
+    .sub-title {
+      font-size: 1.5rem;
+      color: var(--text-muted);
+      max-width: 800px;
+      line-height: 1.4;
+      margin-bottom: 30px;
+    }
+    .author-info {
+      display: flex;
+      gap: 60px;
+      margin-top: 40px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 30px;
+    }
+    .author-box {
+      text-align: left;
+    }
+    .author-box h4 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .author-box p {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #ffffff;
+      font-family: var(--font-display);
+    }
+    .author-box span {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* Architecture SVG diagram container */
+    .arch-diagram-container {
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 16px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 15px;
+    }
+
+    /* Engineering Flows */
+    .flow-step {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .flow-number {
+      background: linear-gradient(135deg, var(--secondary), var(--primary));
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+    .flow-text h4 {
+      font-size: 0.95rem;
+      color: #ffffff;
+      margin-bottom: 2px;
+    }
+    .flow-text p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Layout metrics */
+    .stat-number {
+      font-family: var(--font-display);
+      font-size: 3rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--secondary), var(--primary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 5px;
+    }
+
+    /* Inline animations */
+    @keyframes pulse-slow {
+      0%, 100% { opacity: 0.45; }
+      50% { opacity: 0.65; }
+    }
+    .glow-circle {
+      animation: pulse-slow 8s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient light blobs -->
+  <div class="glow-circle glow-1"></div>
+  <div class="glow-circle glow-2"></div>
+  <div class="glow-circle glow-3"></div>
+
+  <div class="presentation-container">
+    <div class="progress-bar-container">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <!-- Header navigation metadata -->
+    <header>
+      <div class="brand">
+        <span class="brand-logo">FOODFLOW 4.1</span>
+        <span class="brand-subtitle">Project Presentation</span>
+      </div>
+      <div class="header-info">
+        <div>B.Tech AI & ML Internship Project</div>
+        <div style="font-size: 0.75rem; opacity: 0.7;">Sreeharan M Anilkumar (MEC23AIM006)</div>
+      </div>
+    </header>
+
+    <!-- Main Viewport for Slides -->
+    <div class="slides-viewport">
+
+      <!-- SLIDE 1: TITLE SLIDE -->
+      <div class="slide active" id="slide-1">
+        <div class="title-slide-content">
+          <div class="title-badge">Internship Project Presentation</div>
+          <h1 class="main-title">FOODFLOW 4.1</h1>
+          <p class="sub-title">Cloud-Based Multi-Vendor Food Ordering SaaS Ecosystem</p>
+          
+          <div class="author-info">
+            <div class="author-box">
+              <h4>Submitted By</h4>
+              <p>Sreeharan M Anilkumar</p>
+              <span>Reg No: MEC23AIM006<br>B.Tech, Artificial Intelligence & ML</span>
+            </div>
+            <div class="author-box">
+              <h4>Host Organization</h4>
+              <p>Bairuha Tech</p>
+              <span>Mentors: Ambika Raj, Ressaan</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 2: PROJECT OVERVIEW -->
+      <div class="slide" id="slide-2">
+        <h2>Project Overview & Objectives</h2>
+        <div class="grid-2">
+          <div class="flex-column">
+            <h3 style="font-family: var(--font-display); font-size: 1.5rem; color: var(--secondary);">The Industry Challenge</h3>
+            <ul class="list-items">
+              <li><strong>Fragmented Workflows:</strong> Local restaurants struggle with disjointed online orders and config overhead.</li>
+              <li><strong>Lack of Tenant Boundaries:</strong> Normal systems lack secure row-level multi-vendor data isolation.</li>
+              <li><strong>Static Transactions:</strong> Customers miss live order milestones and dynamic downloadable billing receipts.</li>
+            </ul>
+          </div>
+          <div class="grid-2" style="grid-template-columns: 1fr; gap: 20px;">
+            <div class="card" style="border-left: 4px solid var(--primary);">
+              <h3>Real-Time Live Ops</h3>
+              <p>Establishing instantaneous state syncs using WebSocket streams for dynamic dispatch boards and order status timelines.</p>
+            </div>
+            <div class="card" style="border-left: 4px solid var(--accent);">
+              <h3>Multi-Portal Architecture</h3>
+              <p>Creating custom roles and views for Customers, Restaurant Admins (Vendors), and platform Super Administrators.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 3: TECH STACK -->
+      <div class="slide" id="slide-3">
+        <h2>Enterprise Technology Stack</h2>
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 30px;">
+          <div class="grid-3">
+            <div class="card">
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3z"/><path d="M6 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3z"/></svg>
+                Frontend Ecosystem
+              </h3>
+              <p>Next.js 16/15 (App Router, React 19, TypeScript), Tailwind CSS v4 for layouts, Framer Motion for micro-animations, Recharts for analytics dashboards.</p>
+            </div>
+            <div class="card">
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                Backend Engine
+              </h3>
+              <p>NestJS 11 (Node.js framework with dependency injection and modules), Socket.IO server for bi-directional WebSockets gateway connections.</p>
+            </div>
+            <div class="card">
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                Database & Cloud
+              </h3>
+              <p>PostgreSQL 16 relational database hosted on Neon Cloud, managed via Prisma ORM for type-safe database queries and automated schema migrations.</p>
+            </div>
+          </div>
+          <div class="grid-3">
+            <div class="card">
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Security & Authentication
+              </h3>
+              <p>Stateless JSON Web Tokens (JWT) featuring Access & Refresh Token Rotation. Google OAuth 2.0 social identity integration via Passport-Google.</p>
+            </div>
+            <div class="card">
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                API & Service Integrations
+              </h3>
+              <p>Razorpay checkout processing, Resend API for transactional receipt delivery, Cloudinary CDN for secure merchant media asset storage.</p>
+            </div>
+            <div class="card">
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                Global Cloud Delivery
+              </h3>
+              <p>Vercel for frontend content delivery networks (CDN) and automatic serverless deployments, Railway for scale-on-demand NestJS hosting.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 4: ARCHITECTURE DIAGRAM -->
+      <div class="slide" id="slide-4">
+        <h2>System Architecture Overview</h2>
+        <div class="grid-2">
+          <div class="arch-diagram-container">
+            <svg viewBox="0 0 500 320" width="100%" height="100%" style="max-height: 290px;">
+              <!-- Clients -->
+              <rect x="15" y="20" width="120" height="60" rx="8" fill="rgba(99, 102, 241, 0.15)" stroke="var(--primary)" stroke-width="1.5"/>
+              <text x="75" y="45" fill="#fff" font-size="9" text-anchor="middle" font-family="var(--font-display)" font-weight="600">Next.js Client Apps</text>
+              <text x="75" y="60" fill="var(--text-muted)" font-size="7" text-anchor="middle">Customer/Admin Portals</text>
+
+              <!-- API Gateway / NestJS -->
+              <rect x="190" y="20" width="130" height="150" rx="8" fill="rgba(6, 182, 212, 0.15)" stroke="var(--secondary)" stroke-width="1.5"/>
+              <text x="255" y="40" fill="#fff" font-size="9" text-anchor="middle" font-family="var(--font-display)" font-weight="600">NestJS Backend API</text>
+              
+              <rect x="200" y="55" width="110" height="22" rx="4" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)"/>
+              <text x="255" y="69" fill="var(--text-main)" font-size="7" text-anchor="middle">JWT / Guard Auth</text>
+
+              <rect x="200" y="85" width="110" height="22" rx="4" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)"/>
+              <text x="255" y="99" fill="var(--text-main)" font-size="7" text-anchor="middle">Socket.IO WS Server</text>
+
+              <rect x="200" y="115" width="110" height="22" rx="4" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)"/>
+              <text x="255" y="129" fill="var(--text-main)" font-size="7" text-anchor="middle">Order & Checkout</text>
+
+              <rect x="200" y="145" width="110" height="18" rx="4" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)"/>
+              <text x="255" y="157" fill="var(--text-main)" font-size="7" text-anchor="middle">Prisma ORM Client</text>
+
+              <!-- DB Layer -->
+              <ellipse cx="255" cy="265" rx="55" ry="25" fill="rgba(168, 85, 247, 0.15)" stroke="var(--accent)" stroke-width="1.5"/>
+              <text x="255" y="262" fill="#fff" font-size="9" text-anchor="middle" font-family="var(--font-display)" font-weight="600">PostgreSQL</text>
+              <text x="255" y="274" fill="var(--text-muted)" font-size="7" text-anchor="middle">Neon Cloud DB</text>
+
+              <!-- Cloud services -->
+              <rect x="375" y="20" width="110" height="150" rx="8" fill="rgba(16, 185, 129, 0.1)" stroke="var(--success)" stroke-width="1.5"/>
+              <text x="430" y="40" fill="#fff" font-size="9" text-anchor="middle" font-family="var(--font-display)" font-weight="600">External Integrations</text>
+              
+              <rect x="385" y="55" width="90" height="22" rx="4" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.05)"/>
+              <text x="430" y="69" fill="var(--text-main)" font-size="7" text-anchor="middle">Razorpay API</text>
+
+              <rect x="385" y="85" width="90" height="22" rx="4" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.05)"/>
+              <text x="430" y="99" fill="var(--text-main)" font-size="7" text-anchor="middle">Resend Email</text>
+
+              <rect x="385" y="115" width="90" height="22" rx="4" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.05)"/>
+              <text x="430" y="129" fill="var(--text-main)" font-size="7" text-anchor="middle">Google OAuth</text>
+
+              <rect x="385" y="145" width="90" height="18" rx="4" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.05)"/>
+              <text x="430" y="157" fill="var(--text-main)" font-size="7" text-anchor="middle">Cloudinary CDN</text>
+
+              <!-- Connection arrows -->
+              <!-- Client to NestJS -->
+              <path d="M135 40 L190 40" stroke="var(--primary)" stroke-width="1.5" fill="none" marker-end="url(#arrow)"/>
+              <path d="M190 60 L135 60" stroke="var(--primary)" stroke-width="1.5" stroke-dasharray="2,2" fill="none"/>
+              <!-- WS sync -->
+              <path d="M190 95 C 160 95, 160 70, 135 70" stroke="var(--secondary)" stroke-width="1.5" fill="none"/>
+
+              <!-- NestJS to DB -->
+              <path d="M255 170 L255 240" stroke="var(--accent)" stroke-width="1.5" fill="none"/>
+
+              <!-- NestJS to Services -->
+              <path d="M320 85 L375 85" stroke="var(--success)" stroke-width="1.5" fill="none"/>
+              <path d="M375 125 L320 125" stroke="var(--success)" stroke-width="1.5" fill="none"/>
+
+              <!-- Markers -->
+              <defs>
+                <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 1 L 10 5 L 0 9 z" fill="var(--primary)"/>
+                </marker>
+              </defs>
+            </svg>
+          </div>
+          <div class="flex-column">
+            <h3 style="font-family: var(--font-display); font-size: 1.4rem; color: var(--accent);">Architectural Highlights</h3>
+            <ul class="list-items" style="font-size: 0.95rem;">
+              <li><strong>Modular Backend Pattern:</strong> NestJS dependency injection manages isolated domains (Orders, Menus, Users) efficiently.</li>
+              <li><strong>Stateless Security Flow:</strong> Next.js checks routing, storing JWT access tokens short-term while rotation occurs via cookie-bound refresh.</li>
+              <li><strong>Neon Postgres & Prisma:</strong> Standardized multi-tenant indexing makes queries incredibly fast across vendor-specific datasets.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 5: CUSTOMER PORTAL -->
+      <div class="slide" id="slide-5">
+        <h2>Module A: The Customer Portal</h2>
+        <div class="grid-2">
+          <div class="flex-column">
+            <div class="card" style="margin-bottom: 5px;">
+              <h3 style="font-size: 1.15rem; color: var(--secondary);">Restaurant Discovery & Search</h3>
+              <p>Dynamic restaurant registries featuring scrolling menu strips (Arabian, Beverages, Biryanis, etc.) and A-Z filtering, and Veg-Only switches.</p>
+            </div>
+            <div class="card">
+              <h3 style="font-size: 1.15rem; color: var(--primary);">Secure Checkout & Cart</h3>
+              <p>Checkout integrates delivery address selection, dynamic validation of promo codes, and immediate Razorpay overlays.</p>
+            </div>
+          </div>
+          <div class="flex-column">
+            <div class="card" style="border-left: 4px solid var(--accent);">
+              <h3 style="font-size: 1.25rem;">Live WebSockets Order Tracking</h3>
+              <p>Instead of manual page refreshing, customers view a real-time progress timeline showing order milestones. The milestones are emitted dynamically by store kitchens through the Socket.IO gateway.</p>
+              <div style="margin-top: 15px; display: flex; gap: 8px; font-size: 0.75rem;">
+                <span style="background: rgba(255,255,255,0.06); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.1)">PENDING</span>
+                <span style="color: var(--secondary)">➜</span>
+                <span style="background: rgba(6, 182, 212, 0.15); color: var(--secondary); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(6, 182, 212, 0.2)">PREPARING</span>
+                <span style="color: var(--secondary)">➜</span>
+                <span style="background: rgba(16, 185, 129, 0.15); color: var(--success); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.2)">DELIVERED</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 6: RESTAURANT ADMIN -->
+      <div class="slide" id="slide-6">
+        <h2>Module B: The Restaurant Admin Console</h2>
+        <div class="grid-2">
+          <div class="flex-column">
+            <h3 style="font-family: var(--font-display); font-size: 1.4rem; color: var(--secondary);">Operational Control Panels</h3>
+            <ul class="list-items" style="font-size: 0.95rem;">
+              <li><strong>Live Order Queue:</strong> Immediate incoming orders are synced via WebSockets, featuring dynamic sound notifications.</li>
+              <li><strong>Interactive Menu CRUD:</strong> Storefronts build customizable menus with pricing, description, and status controls.</li>
+              <li><strong>Promo Management:</strong> Store admins design custom discount coupons bound to their individual store catalog.</li>
+            </ul>
+          </div>
+          <div class="card" style="display: flex; flex-direction: column; justify-content: center; gap: 20px;">
+            <h3 style="font-size: 1.2rem; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">Sales Analytics Dashboards</h3>
+            <div style="display: flex; justify-content: space-around; text-align: center;">
+              <div>
+                <div class="stat-number" style="font-size: 2.2rem;">₹24K+</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Total Sales</div>
+              </div>
+              <div>
+                <div class="stat-number" style="font-size: 2.2rem; color: var(--accent);">37</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Orders Processed</div>
+              </div>
+            </div>
+            <p style="font-size: 0.85rem; text-align: center;">Recharts integration supplies interactive charts mapping 7-day revenue distributions, order-status donuts, and top-selling food items.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 7: SUPER ADMIN -->
+      <div class="slide" id="slide-7">
+        <h2>Module C: Super Admin Executive Console</h2>
+        <div class="grid-3">
+          <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Platform Governance
+              </h3>
+              <p style="margin-top: 10px; font-size: 0.85rem;">Central command dashboard provides total control over user status. Administrators can freeze or resume customer or vendor accounts globally for platform policy enforcement.</p>
+            </div>
+            <span style="font-size: 0.75rem; color: var(--secondary); font-weight: 600;">Secure Identity Bounds</span>
+          </div>
+          <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+                Onboarding Registers
+              </h3>
+              <p style="margin-top: 10px; font-size: 0.85rem;">Vendor applications flow through an approval pipeline. Super admins inspect restaurant details and use simple buttons to toggle their verification status (`APPROVED`, `SUSPENDED`, etc.).</p>
+            </div>
+            <span style="font-size: 0.75rem; color: var(--primary); font-weight: 600;">Workflow Authorization</span>
+          </div>
+          <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                System Audit Logs
+              </h3>
+              <p style="margin-top: 10px; font-size: 0.85rem;">To track administrative responsibility, every platform update (e.g., toggling merchant status, blocking accounts, adjusting commissions) is automatically saved inside a queryable system log table.</p>
+            </div>
+            <span style="font-size: 0.75rem; color: var(--accent); font-weight: 600;">Accountability & Logs</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 8: ENGINEERING DELIVERABLE - COD BYPASS -->
+      <div class="slide" id="slide-8">
+        <h2>Cash on Delivery (COD) Razorpay Bypass</h2>
+        <div class="grid-2">
+          <div class="flex-column">
+            <h3 style="font-size: 1.3rem; color: var(--secondary);">The Integration Challenge</h3>
+            <p style="font-size: 0.95rem; color: var(--text-muted);">Integrating doorstep cash payments without adding database overhead, causing state mismatch, or requiring database migrations in the relational tables.</p>
+            
+            <div class="list-items" style="font-size: 0.9rem; gap: 10px;">
+              <li><strong>Frontend Interception:</strong> Next.js checkout routes COD orders past the standard Razorpay gateway popup script.</li>
+              <li><strong>Backend Branching:</strong> NestJS checkout logic skips third-party token initialization and saves orders instantly as `PENDING`.</li>
+              <li><strong>Zero-Record Design Pattern:</strong> Avoids database migration by omitting payment row instantiation, tracking COD status cleanly via status tags.</li>
+            </div>
+          </div>
+          <div class="flex-column" style="gap: 12px;">
+            <div class="flow-step">
+              <div class="flow-number">1</div>
+              <div class="flow-text">
+                <h4>Method Selection</h4>
+                <p>Client selects COD payment method in Checkout Portal.</p>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-number">2</div>
+              <div class="flow-text">
+                <h4>Payment Gateway Bypass</h4>
+                <p>Cart is processed directly without triggering Razorpay SDK scripts.</p>
+              </div>
+            </div>
+            <div class="flow-step">
+              <div class="flow-number">3</div>
+              <div class="flow-text">
+                <h4>Zero-Record State Instantiation</h4>
+                <p>Order is saved as `PENDING` with no placeholder Payment row.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 9: ENGINEERING DELIVERABLE - INVOICING -->
+      <div class="slide" id="slide-9">
+        <h2>Dynamic Invoicing & Transactional Loop</h2>
+        <div class="grid-2">
+          <div class="flex-column" style="gap: 12px;">
+            <div class="flow-step" style="border-left: 3px solid var(--secondary);">
+              <div class="flow-number" style="background: var(--secondary)">A</div>
+              <div class="flow-text">
+                <h4>Order Delivery Transition</h4>
+                <p>Store admin advances COD order to `DELIVERED` status.</p>
+              </div>
+            </div>
+            <div class="flow-step" style="border-left: 3px solid var(--primary);">
+              <div class="flow-number" style="background: var(--primary)">B</div>
+              <div class="flow-text">
+                <h4>Auto Payment Capture</h4>
+                <p>Backend transitions `paymentStatus` value from `PENDING` to `PAID` instantly.</p>
+              </div>
+            </div>
+            <div class="flow-step" style="border-left: 3px solid var(--accent);">
+              <div class="flow-number" style="background: var(--accent)">C</div>
+              <div class="flow-text">
+                <h4>Dynamic PDF Build</h4>
+                <p>`InvoiceService` builds custom invoice PDF marking Payment Method as 'COD'.</p>
+              </div>
+            </div>
+            <div class="flow-step" style="border-left: 3px solid var(--success);">
+              <div class="flow-number" style="background: var(--success)">D</div>
+              <div class="flow-text">
+                <h4>Transactional Email Dispatch</h4>
+                <p>Resend API mails invoice PDF attachment automatically to the Customer.</p>
+              </div>
+            </div>
+          </div>
+          <div class="flex-column">
+            <h3 style="font-size: 1.3rem; color: var(--accent);">Closing the Operational Loop</h3>
+            <p style="font-size: 0.95rem; color: var(--text-muted);">This integration creates a cohesive transactional flow, ensuring cash order customers receive professional invoices as soon as order delivery is finalized.</p>
+            
+            <div class="card" style="background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.1);">
+              <h4 style="color: var(--success); font-family: var(--font-display); margin-bottom: 5px; font-size: 1rem;">Email Notification Delivery</h4>
+              <p style="font-size: 0.85rem;">"Dear Customer, your FoodFlow order has been successfully delivered! Please find your generated receipt PDF attached to this email."</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 10: KEY CHALLENGES -->
+      <div class="slide" id="slide-10">
+        <h2>Technical Challenges & Resolutions</h2>
+        <div class="grid-3">
+          <div class="card">
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #f87171; padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; width: fit-content; margin-bottom: 15px; font-weight: 600;">CHALLENGE 1</div>
+            <h3>Timezone Analytics</h3>
+            <p style="font-size: 0.85rem; margin-top: 10px;">Mismatched day boundaries caused empty gaps and date inaccuracies in dashboard charts.</p>
+            <div style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+              <h4 style="font-size: 0.8rem; color: var(--success); margin-bottom: 4px;">Resolution:</h4>
+              <p style="font-size: 0.85rem;">Standardized database operations to UTC and implemented dynamic timezone rendering client-side based on browser locations.</p>
+            </div>
+          </div>
+          <div class="card">
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #f87171; padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; width: fit-content; margin-bottom: 15px; font-weight: 600;">CHALLENGE 2</div>
+            <h3>Tenant Data Isolation</h3>
+            <p style="font-size: 0.85rem; margin-top: 10px;">Preventing data access crossovers and protecting sensitive sales statistics between store vendors.</p>
+            <div style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+              <h4 style="font-size: 0.8rem; color: var(--success); margin-bottom: 4px;">Resolution:</h4>
+              <p style="font-size: 0.85rem;">Developed custom NestJS guards to intercept incoming routes, verifying authenticated JWT token claims against query tenant targets.</p>
+            </div>
+          </div>
+          <div class="card">
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #f87171; padding: 6px 12px; border-radius: 6px; font-size: 0.75rem; width: fit-content; margin-bottom: 15px; font-weight: 600;">CHALLENGE 3</div>
+            <h3>Node Environment Path</h3>
+            <p style="font-size: 0.85rem; margin-top: 10px;">Broken global symlinks on host profiles created server start and build path blockages.</p>
+            <div style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+              <h4 style="font-size: 0.8rem; color: var(--success); margin-bottom: 4px;">Resolution:</h4>
+              <p style="font-size: 0.85rem;">Configured explicit runtime variables in shell profiles to load localized appdata executable runtimes directly.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 11: LEARNING REFLECTION -->
+      <div class="slide" id="slide-11">
+        <h2>Internship Learning Reflections</h2>
+        <div class="grid-2">
+          <div class="flex-column" style="justify-content: flex-start; gap: 15px;">
+            <div class="card" style="border-left: 4px solid var(--secondary);">
+              <h3>Enterprise System Architecture</h3>
+              <p>Gained rich knowledge in designing modular APIs, structuring decoupled databases, and managing robust micro-services with NestJS modules.</p>
+            </div>
+            <div class="card" style="border-left: 4px solid var(--primary);">
+              <h3>Real-Time Communications</h3>
+              <p>Acquired practical skills in configuring WebSockets to transmit live updates and managing multi-client subscription rooms efficiently.</p>
+            </div>
+          </div>
+          <div class="flex-column" style="justify-content: flex-start; gap: 15px;">
+            <div class="card" style="border-left: 4px solid var(--accent);">
+              <h3>External SDK Integrations</h3>
+              <p>Learned authentication flows (OAuth 2.0, JWT rotative tokens) and third-party systems integrations (Razorpay SDK, Resend mailing API).</p>
+            </div>
+            <div class="card" style="border-left: 4px solid var(--success);">
+              <h3>Professional SDLC Pipeline</h3>
+              <p>Participated in practical developer operations: schema design, script seeding, environment settings isolation, and multi-cloud build pipelines.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDE 12: FUTURE SCOPE -->
+      <div class="slide" id="slide-12">
+        <h2>Future Scope & Project Conclusion</h2>
+        <div class="grid-2">
+          <div class="flex-column">
+            <h3 style="font-size: 1.4rem; color: var(--secondary);">Future Enhancements</h3>
+            <ul class="list-items" style="font-size: 0.95rem;">
+              <li><strong>AI Recommendation Engine:</strong> Suggest menu items and custom cuisines using B.Tech AI & ML predictive analytics patterns.</li>
+              <li><strong>Live Rider Map:</strong> Integrate Leaflet or Mapbox to show real-time GPS locations of active delivery agents.</li>
+              <li><strong>Subscription Tiers:</strong> Replace simple commission checkouts with recurring merchant storefront subscriptions.</li>
+            </ul>
+          </div>
+          <div class="flex-column" style="justify-content: center; align-items: center; text-align: center; background: rgba(255,255,255,0.01); border-radius: 16px; border: 1px dashed var(--border-color); padding: 40px;">
+            <h3 style="font-family: var(--font-display); font-size: 2.2rem; background: linear-gradient(135deg, var(--secondary), var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">FOODFLOW 4.1</h3>
+            <p style="font-size: 0.95rem; color: var(--text-muted); margin-top: 15px; max-width: 320px; line-height: 1.6;">Successfully completes all B.Tech internship objectives, providing a scalable, secure, and production-ready SaaS food commerce platform.</p>
+            <div style="margin-top: 25px; color: var(--success); font-weight: 600; display: flex; align-items: center; gap: 8px;">
+              <span style="display:inline-block; width: 8px; height: 8px; background: var(--success); border-radius: 50%;"></span>
+              Project Deployment Complete
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Presentation Controls footer -->
+    <footer>
+      <div class="slide-counter" id="slideCounter">Slide 1 of 12</div>
+      <div class="controls">
+        <select class="select-dropdown" id="slideSelect" onchange="jumpToSlide(this.value)">
+          <option value="1">1. Title Slide</option>
+          <option value="2">2. Overview & Objectives</option>
+          <option value="3">3. Technology Stack</option>
+          <option value="4">4. System Architecture</option>
+          <option value="5">5. Customer Portal</option>
+          <option value="6">6. Restaurant Admin</option>
+          <option value="7">7. Super Admin</option>
+          <option value="8">8. COD Razorpay Bypass</option>
+          <option value="9">9. Dynamic Invoicing</option>
+          <option value="10">10. Technical Challenges</option>
+          <option value="11">11. Learning Reflections</option>
+          <option value="12">12. Future Scope & Conclusion</option>
+        </select>
+        
+        <button class="btn" onclick="prevSlide()" title="Previous Slide (Left Arrow)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Prev
+        </button>
+        
+        <button class="btn" id="playBtn" onclick="togglePlay()" title="Auto Play Slideshow">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="playIcon"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <span id="playText">Play</span>
+        </button>
+
+        <button class="btn btn-primary" onclick="nextSlide()" title="Next Slide (Right Arrow / Spacebar)">
+          Next
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+
+        <button class="btn" onclick="toggleFullscreen()" title="Fullscreen Mode (F)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 12;
+    let playInterval = null;
+    const autoPlayDelay = 5000; // 5 seconds per slide
+
+    const progressBar = document.getElementById('progressBar');
+    const slideCounter = document.getElementById('slideCounter');
+    const slideSelect = document.getElementById('slideSelect');
+    const playBtn = document.getElementById('playBtn');
+    const playIcon = document.getElementById('playIcon');
+    const playText = document.getElementById('playText');
+
+    function updateSlide() {
+      // Hide all slides
+      for (let i = 1; i <= totalSlides; i++) {
+        const slide = document.getElementById(`slide-${i}`);
+        if (slide) {
+          slide.classList.remove('active');
+        }
+      }
+
+      // Show current slide
+      const activeSlide = document.getElementById(`slide-${currentSlide}`);
+      if (activeSlide) {
+        activeSlide.classList.add('active');
+      }
+
+      // Update progress bar
+      const progressPercent = (currentSlide / totalSlides) * 100;
+      progressBar.style.width = `${progressPercent}%`;
+
+      // Update counters & selects
+      slideCounter.innerText = `Slide ${currentSlide} of ${totalSlides}`;
+      slideSelect.value = currentSlide;
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) {
+        currentSlide++;
+      } else {
+        currentSlide = 1; // loop around
+      }
+      updateSlide();
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) {
+        currentSlide--;
+      } else {
+        currentSlide = totalSlides; // loop around
+      }
+      updateSlide();
+    }
+
+    function jumpToSlide(num) {
+      currentSlide = parseInt(num);
+      updateSlide();
+    }
+
+    // Auto play / slideshow functions
+    function startPlay() {
+      playInterval = setInterval(nextSlide, autoPlayDelay);
+      playText.innerText = "Pause";
+      // Change icon to pause
+      playIcon.innerHTML = '<rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect>';
+    }
+
+    function stopPlay() {
+      clearInterval(playInterval);
+      playInterval = null;
+      playText.innerText = "Play";
+      // Change icon to play triangle
+      playIcon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"></polygon>';
+    }
+
+    function togglePlay() {
+      if (playInterval) {
+        stopPlay();
+      } else {
+        startPlay();
+      }
+    }
+
+    // Fullscreen toggler
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.error(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    // Keyboard bindings
+    document.addEventListener('keydown', (event) => {
+      stopPlay(); // pause slideshow on interaction
+      if (event.key === 'ArrowRight' || event.key === ' ') {
+        nextSlide();
+      } else if (event.key === 'ArrowLeft') {
+        prevSlide();
+      } else if (event.key.toLowerCase() === 'f') {
+        toggleFullscreen();
+      }
+    });
+
+    // Initialize UI on load
+    updateSlide();
+  </script>
+</body>
+</html>
