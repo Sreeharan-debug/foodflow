@@ -476,12 +476,12 @@ The application uses role-based security controls to guarantee separation of dut
 
 *Place screenshots here to showcase your beautiful visual designs:*
 
-| Page | Mobile View | Desktop View |
-| :--- | :--- | :--- |
-| **Customer Marketplace** | *[Placeholder for Customer Menu]* | *[Placeholder for Customer Desktop Menu]* |
-| **Order Progress Tracking** | *[Placeholder for Live Track Timeline]* | *[Placeholder for Live Track Timeline]* |
-| **Vendor Admin Queue** | *[Placeholder for Incoming Live Queue]* | *[Placeholder for Incoming Live Queue]* |
-| **Super Admin Dashboard** | *[Placeholder for Admin Status Grid]* | *[Placeholder for Admin Status Grid]* |
+| Page | Desktop View |
+| :--- | :--- |
+| **Customer Marketplace** | *[Placeholder for Customer Desktop Menu]* |
+| **Order Progress Tracking** | *[Placeholder for Live Track Timeline]* |
+| **Vendor Admin Queue** | *[Placeholder for Incoming Live Queue]* |
+| **Super Admin Dashboard** | *[Placeholder for Admin Status Grid]* |
 
 ---
 
