@@ -8,18 +8,47 @@ import { api } from '@/services/api';
 import { useAuth } from '@/providers/auth-provider';
 import { 
   DollarSign, ShoppingBag, Users, Store, Loader2, AlertCircle, CheckCircle2, 
-  XCircle, Ban, Unlock, Download, RefreshCw, Layers, ShieldAlert, FileText 
+  XCircle, Ban, Unlock, Download, RefreshCw, Layers, ShieldAlert, FileText,
+  TrendingUp, Award, Clock
 } from 'lucide-react';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Types aligning with NestJS backend response shapes
-interface PlatformMetrics {
+interface KPIMetrics {
   totalRevenue: number;
-  totalOrders: number;
-  totalCustomers: number;
+  totalRestaurants: number;
   totalVendors: number;
-  totalFoods: number;
-  totalCategories: number;
+  totalCustomers: number;
+  totalOrders: number;
+  activeVendors: number;
+  pendingVendors: number;
+}
+
+interface GrowthTrendItem {
+  date: string;
+  revenue: number;
+  orders: number;
+}
+
+interface CustomerGrowthTrendItem {
+  day: string;
+  count: number;
+}
+
+interface TopRestaurantItem {
+  id: string;
+  name: string;
+  logo: string;
+  revenue: number;
+  orders: number;
+}
+
+interface PlatformMetricsResponse {
+  kpis: KPIMetrics;
+  growthTrend: GrowthTrendItem[];
+  customerGrowthTrend: CustomerGrowthTrendItem[];
+  topRestaurants: TopRestaurantItem[];
 }
 
 interface Vendor {
@@ -96,9 +125,18 @@ export default function SuperAdminDashboard() {
     return pdfUrl.startsWith('http') ? pdfUrl : `${baseUrl}${pdfUrl}`;
   };
 
-  // 1. Fetch Metrics
-  const { data: metrics, isLoading: isMetricsLoading, refetch: refetchMetrics } = useQuery<PlatformMetrics>({
+  // 1. Fetch Metrics KPIs (per explicit requirement)
+  const { data: metrics, isLoading: isMetricsLoading, refetch: refetchMetrics } = useQuery<KPIMetrics>({
     queryKey: ['super-admin-metrics'],
+    queryFn: async () => {
+      const res = await api.get('/super-admin/metrics');
+      return res.data.kpis;
+    },
+  });
+
+  // Fetch full metrics response for charts & leaderboard (preserving React Query caching)
+  const { data: metricsData } = useQuery<PlatformMetricsResponse>({
+    queryKey: ['super-admin-metrics-full'],
     queryFn: async () => {
       const res = await api.get('/super-admin/metrics');
       return res.data;
@@ -244,93 +282,218 @@ export default function SuperAdminDashboard() {
             <div className="space-y-8 animate-fade-in">
               {/* KPIs Grid */}
               {isMetricsLoading ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {[...Array(4)].map((_, i) => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
+                  {[...Array(6)].map((_, i) => (
                     <div key={i} className="glass p-6 rounded-2xl border border-border/40 h-28 animate-pulse" />
                   ))}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="glass p-6 rounded-2xl border border-border/40 flex items-center justify-between">
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Gross Platform Sales</span>
-                      <p className="text-2xl font-extrabold font-outfit text-foreground leading-none">
-                        ₹{(metrics?.totalRevenue || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-5">
+                  {/* Card 1: Gross Platform Sales */}
+                  <div className="glass p-5 rounded-2xl border border-border/40 flex flex-col justify-between hover:border-green-500/20 transition-all">
+                    <div className="flex justify-between items-start">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Gross Sales</span>
+                      <div className="p-1.5 bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg">
+                        <DollarSign className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <p className="text-xl font-extrabold font-outfit text-foreground leading-none">
+                        ₹{(metrics?.totalRevenue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </p>
-                      <p className="text-[10px] text-green-400 font-bold">100% Secure Checkout</p>
-                    </div>
-                    <div className="p-3 bg-green-500/10 border border-green-500/20 text-green-400 rounded-xl">
-                      <span className="text-lg font-bold">₹</span>
+                      <p className="text-[9px] text-green-400 font-bold mt-1.5">100% Secure Checkout</p>
                     </div>
                   </div>
 
-                  <div className="glass p-6 rounded-2xl border border-border/40 flex items-center justify-between">
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Orders</span>
-                      <p className="text-2xl font-extrabold font-outfit text-foreground leading-none">{metrics?.totalOrders || 0}</p>
-                      <p className="text-[10px] text-orange-400 font-bold">Processed</p>
+                  {/* Card 2: Platform Orders */}
+                  <div className="glass p-5 rounded-2xl border border-border/40 flex flex-col justify-between hover:border-orange-500/20 transition-all">
+                    <div className="flex justify-between items-start">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Orders</span>
+                      <div className="p-1.5 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-lg">
+                        <ShoppingBag className="w-3.5 h-3.5" />
+                      </div>
                     </div>
-                    <div className="p-3 bg-orange-500/10 border border-orange-500/20 text-orange-400 rounded-xl">
-                      <ShoppingBag className="w-5 h-5" />
+                    <div className="mt-4">
+                      <p className="text-xl font-extrabold font-outfit text-foreground leading-none">
+                        {metrics?.totalOrders || 0}
+                      </p>
+                      <p className="text-[9px] text-orange-400 font-bold mt-1.5">{metrics?.totalOrders || 0} Orders Processed</p>
                     </div>
                   </div>
 
-                  <div className="glass p-6 rounded-2xl border border-border/40 flex items-center justify-between">
-                    <div className="space-y-1">
+                  {/* Card 3: Approved Merchants */}
+                  <div className="glass p-5 rounded-2xl border border-border/40 flex flex-col justify-between hover:border-purple-500/20 transition-all">
+                    <div className="flex justify-between items-start">
                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Approved Merchants</span>
-                      <p className="text-2xl font-extrabold font-outfit text-foreground leading-none">{metrics?.totalVendors || 0}</p>
-                      <p className="text-[10px] text-purple-400 font-bold">Operational Kitchens</p>
+                      <div className="p-1.5 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-lg">
+                        <Store className="w-3.5 h-3.5" />
+                      </div>
                     </div>
-                    <div className="p-3 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-xl">
-                      <Store className="w-5 h-5" />
+                    <div className="mt-4">
+                      <p className="text-xl font-extrabold font-outfit text-foreground leading-none">
+                        {metrics?.totalVendors || 0}
+                      </p>
+                      <p className="text-[9px] text-purple-400 font-bold mt-1.5">Active Vendors: {metrics?.activeVendors || 0}</p>
                     </div>
                   </div>
 
-                  <div className="glass p-6 rounded-2xl border border-border/40 flex items-center justify-between">
-                    <div className="space-y-1">
+                  {/* Card 4: Active Customers */}
+                  <div className="glass p-5 rounded-2xl border border-border/40 flex flex-col justify-between hover:border-blue-500/20 transition-all">
+                    <div className="flex justify-between items-start">
                       <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Active Customers</span>
-                      <p className="text-2xl font-extrabold font-outfit text-foreground leading-none">{metrics?.totalCustomers || 0}</p>
-                      <p className="text-[10px] text-blue-400 font-bold">Registered Users</p>
+                      <div className="p-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-lg">
+                        <Users className="w-3.5 h-3.5" />
+                      </div>
                     </div>
-                    <div className="p-3 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl">
-                      <Users className="w-5 h-5" />
+                    <div className="mt-4">
+                      <p className="text-xl font-extrabold font-outfit text-foreground leading-none">
+                        {metrics?.totalCustomers || 0}
+                      </p>
+                      <p className="text-[9px] text-blue-400 font-bold mt-1.5">Registered Users</p>
+                    </div>
+                  </div>
+
+                  {/* Card 5: Pending Vendors */}
+                  <div className="glass p-5 rounded-2xl border border-border/40 flex flex-col justify-between hover:border-amber-500/20 transition-all">
+                    <div className="flex justify-between items-start">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Pending Vendors</span>
+                      <div className="p-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-lg">
+                        <ShieldAlert className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <p className="text-xl font-extrabold font-outfit text-foreground leading-none">
+                        {metrics?.pendingVendors || 0}
+                      </p>
+                      <p className="text-[9px] text-amber-400 font-bold mt-1.5">Requires Verification</p>
+                    </div>
+                  </div>
+
+                  {/* Card 6: Total Restaurants */}
+                  <div className="glass p-5 rounded-2xl border border-border/40 flex flex-col justify-between hover:border-sky-500/20 transition-all">
+                    <div className="flex justify-between items-start">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Total Restaurants</span>
+                      <div className="p-1.5 bg-sky-500/10 border border-sky-500/20 text-sky-400 rounded-lg">
+                        <Layers className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <p className="text-xl font-extrabold font-outfit text-foreground leading-none">
+                        {metrics?.totalRestaurants || 0}
+                      </p>
+                      <p className="text-[9px] text-sky-400 font-bold mt-1.5">Registered Kitchens</p>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Extra Platform Metrics */}
-              <div className="grid md:grid-cols-2 gap-6">
+              {/* Charts & Trends */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Revenue Growth Trend Area Chart */}
                 <div className="glass p-6 rounded-2xl border border-border/40 space-y-4">
-                  <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Cuisine & Menu Volume</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-secondary/20 p-4 rounded-xl space-y-1 border border-border/20">
-                      <span className="text-[10px] text-muted-foreground uppercase font-bold">Categories Created</span>
-                      <p className="text-xl font-extrabold font-outfit text-foreground">{metrics?.totalCategories || 0}</p>
-                    </div>
-                    <div className="bg-secondary/20 p-4 rounded-xl space-y-1 border border-border/20">
-                      <span className="text-[10px] text-muted-foreground uppercase font-bold">Total Food Items</span>
-                      <p className="text-xl font-extrabold font-outfit text-foreground">{metrics?.totalFoods || 0}</p>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-orange-500" />
+                    <h3 className="text-xs font-bold text-foreground font-outfit uppercase tracking-wider">Revenue Growth Trend (Last 30 Days)</h3>
+                  </div>
+                  <div className="h-64">
+                    {metricsData?.growthTrend && metricsData.growthTrend.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={metricsData.growthTrend}>
+                          <defs>
+                            <linearGradient id="colorAdminRevenue" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#f97316" stopOpacity={0.4}/>
+                              <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                          <XAxis dataKey="date" stroke="#888888" fontSize={9} tickLine={false} axisLine={false} />
+                          <YAxis stroke="#888888" fontSize={9} tickLine={false} axisLine={false} tickFormatter={(v) => `₹${v}`} />
+                          <Tooltip formatter={(value) => [`₹${value}`, 'Revenue']} contentStyle={{ background: '#09090b', borderColor: '#27272a', borderRadius: 8, fontSize: 11 }} />
+                          <Area type="monotone" dataKey="revenue" stroke="#f97316" fillOpacity={1} fill="url(#colorAdminRevenue)" strokeWidth={2} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-xs text-muted-foreground">No growth trend data available</div>
+                    )}
                   </div>
                 </div>
 
-                <div className="glass p-6 rounded-2xl border border-border/40 space-y-4 flex flex-col justify-between">
-                  <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Quick Platform Policy Adjustments</h3>
-                  <div className="grid grid-cols-2 gap-4 text-xs font-semibold">
-                    <div className="space-y-1">
-                      <label className="text-[10px] text-muted-foreground uppercase font-bold">Marketplace Commission</label>
-                      <div className="p-2.5 bg-background border border-border/40 rounded-xl text-center text-foreground font-mono">
-                        12% Per Checkout
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] text-muted-foreground uppercase font-bold">Platform GST / Taxes</label>
-                      <div className="p-2.5 bg-background border border-border/40 rounded-xl text-center text-foreground font-mono">
-                        8% (IGST Standard)
-                      </div>
-                    </div>
+                {/* Customer Growth Trend Area Chart */}
+                <div className="glass p-6 rounded-2xl border border-border/40 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-purple-500" />
+                    <h3 className="text-xs font-bold text-foreground font-outfit uppercase tracking-wider">Customer Acquisition (Last 7 Days)</h3>
                   </div>
+                  <div className="h-64">
+                    {metricsData?.customerGrowthTrend && metricsData.customerGrowthTrend.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={metricsData.customerGrowthTrend}>
+                          <defs>
+                            <linearGradient id="colorAdminCustomers" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#a855f7" stopOpacity={0.4}/>
+                              <stop offset="95%" stopColor="#a855f7" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                          <XAxis dataKey="day" stroke="#888888" fontSize={9} tickLine={false} axisLine={false} />
+                          <YAxis stroke="#888888" fontSize={9} tickLine={false} axisLine={false} />
+                          <Tooltip formatter={(value) => [value, 'Signups']} contentStyle={{ background: '#09090b', borderColor: '#27272a', borderRadius: 8, fontSize: 11 }} />
+                          <Area type="monotone" dataKey="count" stroke="#a855f7" fillOpacity={1} fill="url(#colorAdminCustomers)" strokeWidth={2} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-xs text-muted-foreground">No customer growth data available</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Leaderboard */}
+              <div className="glass p-6 rounded-2xl border border-border/40 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Award className="w-4 h-4 text-yellow-500" />
+                    <h3 className="text-xs font-bold text-foreground font-outfit uppercase tracking-wider">Top Performing Kitchens Leaderboard</h3>
+                  </div>
+                  <span className="text-[9px] px-2.5 py-1 bg-secondary/80 border border-border/20 text-muted-foreground rounded-full font-bold uppercase tracking-wider">Leaderboard</span>
+                </div>
+                
+                <div className="divide-y divide-border/20 text-xs">
+                  {metricsData?.topRestaurants && metricsData.topRestaurants.length > 0 ? (
+                    metricsData.topRestaurants.map((restaurant, idx) => (
+                      <div key={restaurant.id} className="py-3.5 flex items-center justify-between gap-4">
+                        <div className="flex items-center space-x-3.5 min-w-0">
+                          <span className="font-bold text-muted-foreground w-4 text-sm">{idx + 1}</span>
+                          {restaurant.logo ? (
+                            <img src={restaurant.logo} alt={restaurant.name} className="w-10 h-10 rounded-lg object-cover border border-border/20 shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/20 flex items-center justify-center font-bold font-outfit shrink-0 text-sm">
+                              {restaurant.name.charAt(0)}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-foreground truncate">{restaurant.name}</h4>
+                            <p className="text-[10px] text-muted-foreground font-mono truncate">ID: {restaurant.id}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-8 text-right shrink-0">
+                          <div>
+                            <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">Orders</p>
+                            <p className="font-bold text-foreground text-sm">{restaurant.orders}</p>
+                          </div>
+                          <div>
+                            <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-0.5">Revenue</p>
+                            <p className="font-extrabold text-green-400 text-sm">₹{parseFloat(String(restaurant.revenue)).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-10 text-xs text-muted-foreground">
+                      No restaurant sales data available yet.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -74,7 +74,7 @@ export declare class OrdersController {
             amount: string | number;
             currency: string;
             receipt: string | undefined;
-        };
+        } | null;
     }>;
     getOrders(user: any): Promise<({
         address: {
@@ -206,6 +206,7 @@ export declare class OrdersController {
             id: string;
             email: string;
             name: string;
+            firstName: string | null;
         };
         address: {
             id: string;

@@ -130,10 +130,18 @@ export default function CheckoutPage() {
       const response = await api.post('/orders', {
         addressId: selectedAddressId,
         couponCode: coupon?.code || undefined,
+        paymentMethod: paymentMethod,
       });
 
       const { order, razorpayOrder } = response.data;
       setPendingOrder(order);
+
+      if (paymentMethod === 'COD') {
+        await clearCart();
+        showToast('🎉 Order placed successfully! (Cash on Delivery)', 'success');
+        router.push(`/customer/orders/${order.id}`);
+        return;
+      }
 
       // Load SDK
       const scriptLoaded = await loadRazorpayScript();

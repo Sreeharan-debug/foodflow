@@ -60,14 +60,20 @@ export class InvoiceService {
     doc.fillColor(grayColor).fontSize(9).text('Invoice Date:', 50, 235);
     doc.fillColor(blackColor).fontSize(9).text(new Date(order.createdAt).toLocaleDateString(), 120, 235);
 
+    const isCod = payment?.paymentMethod === 'COD' || (!order.payments || order.payments.length === 0);
+    const paymentMethodText = isCod ? 'Cash on Delivery' : 'Razorpay (Online)';
+    const transactionIdText = isCod ? 'N/A' : (payment?.razorpayPaymentId || 'N/A');
+    const paymentStatusText = order.paymentStatus || 'PAID';
+    const paymentStatusColor = paymentStatusText === 'PAID' ? '#16A34A' : '#D97706';
+
     doc.fillColor(grayColor).fontSize(9).text('Payment Method:', 50, 250);
-    doc.fillColor(blackColor).fontSize(9).text('Razorpay (Online)', 120, 250);
+    doc.fillColor(blackColor).fontSize(9).text(paymentMethodText, 120, 250);
 
     doc.fillColor(grayColor).fontSize(9).text('Transaction ID:', 300, 235);
-    doc.fillColor(blackColor).fontSize(9).text(payment?.razorpayPaymentId || 'N/A', 380, 235);
+    doc.fillColor(blackColor).fontSize(9).text(transactionIdText, 380, 235);
 
     doc.fillColor(grayColor).fontSize(9).text('Payment Status:', 300, 250);
-    doc.fillColor('#16A34A').fontSize(9).text('PAID', 380, 250);
+    doc.fillColor(paymentStatusColor).fontSize(9).text(paymentStatusText, 380, 250);
 
     doc.moveTo(50, 280).lineTo(550, 280).strokeColor('#E5E7EB').stroke();
 

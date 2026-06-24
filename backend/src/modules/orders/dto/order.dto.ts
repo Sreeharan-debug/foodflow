@@ -9,6 +9,10 @@ export class CheckoutDto {
   @IsString()
   @IsOptional()
   couponCode?: string;
+
+  @IsString()
+  @IsOptional()
+  paymentMethod?: string;
 }
 
 export class UpdateOrderStatusDto {

@@ -15,6 +15,7 @@ const client_1 = require("@prisma/client");
 class CheckoutDto {
     addressId;
     couponCode;
+    paymentMethod;
 }
 exports.CheckoutDto = CheckoutDto;
 __decorate([
@@ -27,6 +28,11 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
 ], CheckoutDto.prototype, "couponCode", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], CheckoutDto.prototype, "paymentMethod", void 0);
 class UpdateOrderStatusDto {
     status;
 }

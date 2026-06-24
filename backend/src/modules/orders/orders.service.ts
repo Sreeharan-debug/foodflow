@@ -6,6 +6,7 @@ import { OrderStatus, Prisma, Role } from '@prisma/client';
 import { EmailService } from '../email/email.service';
 
 import { PaymentsService } from '../payments/payments.service';
+import { InvoiceService } from '../payments/invoice.service';
 
 @Injectable()
 export class OrdersService {
@@ -14,10 +15,11 @@ export class OrdersService {
     private wsGateway: WebsocketGateway,
     private emailService: EmailService,
     private paymentsService: PaymentsService,
+    private invoiceService: InvoiceService,
   ) {}
 
   async checkout(userId: string, checkoutDto: CheckoutDto) {
-    const { addressId, couponCode } = checkoutDto;
+    const { addressId, couponCode, paymentMethod } = checkoutDto;
 
     // 1. Get cart items
     const cart = await this.prisma.cart.findUnique({
@@ -141,7 +143,10 @@ export class OrdersService {
     });
 
     // 10. Initialize Razorpay Payment Order
-    const razorpayOrder = await this.paymentsService.createRazorpayOrder(order.id, userId);
+    let razorpayOrder = null;
+    if (paymentMethod !== 'COD') {
+      razorpayOrder = await this.paymentsService.createRazorpayOrder(order.id, userId);
+    }
 
     // Send Order Confirmation Email (Fire and Forget)
     this.emailService.sendOrderConfirmationEmail(
@@ -226,6 +231,7 @@ export class OrdersService {
         user: true,
         items: { include: { food: true } },
         address: true,
+        payments: true,
       },
     });
 
@@ -237,11 +243,18 @@ export class OrdersService {
       throw new BadRequestException('You do not have permission to update this order');
     }
 
+    // If order is COD (no payments) and status is updated to DELIVERED, set paymentStatus to 'PAID'
+    const isCod = !order.payments || order.payments.length === 0;
+    const updateData: Prisma.OrderUpdateInput = { status: updateOrderStatusDto.status };
+    if (isCod && updateOrderStatusDto.status === OrderStatus.DELIVERED) {
+      updateData.paymentStatus = 'PAID';
+    }
+
     const updatedOrder = await this.prisma.order.update({
       where: { id: orderId },
-      data: { status: updateOrderStatusDto.status },
+      data: updateData,
       include: {
-        user: { select: { id: true, email: true, name: true } },
+        user: { select: { id: true, email: true, name: true, firstName: true } },
         address: true,
         items: { include: { food: true } },
       },
@@ -269,6 +282,44 @@ export class OrdersService {
     ).catch((err) => {
       console.error('[Email Error] status update email failed:', err);
     });
+
+    // Generate Invoice for COD order when delivered
+    if (isCod && updateOrderStatusDto.status === OrderStatus.DELIVERED) {
+      try {
+        const generated = await this.invoiceService.generateInvoicePdf(updatedOrder, {
+          paymentMethod: 'COD',
+        });
+        const pdfUrl = generated.pdfUrl;
+        const pdfBuffer = generated.pdfBuffer;
+
+        const invoiceNumber = `INV-${new Date().getFullYear()}-${updatedOrder.id.substring(0, 8).toUpperCase()}`;
+        await this.prisma.invoice.create({
+          data: {
+            invoiceNumber,
+            orderId: updatedOrder.id,
+            customerId: updatedOrder.userId,
+            pdfUrl,
+          },
+        });
+
+        const userFirstName = (updatedOrder.user as any).firstName || updatedOrder.user.name.split(' ')[0] || 'Customer';
+        // Send payment success email with attachment
+        this.emailService
+          .sendPaymentSuccessEmailWithAttachment(
+            updatedOrder.user.email,
+            userFirstName,
+            'COD-' + updatedOrder.id.substring(0, 8).toUpperCase(),
+            updatedOrder.id,
+            updatedOrder.total.toString(),
+            `invoice-${updatedOrder.id}.pdf`,
+            pdfBuffer,
+          )
+          .catch((err) => console.error('[Email Error] COD invoice success email failed:', err));
+
+      } catch (invoiceErr) {
+        console.error('COD Invoice generation/db save failed:', invoiceErr);
+      }
+    }
 
     // If status is DELIVERED, trigger Review Request Email after a brief delay (Fire and Forget)
     if (updatedOrder.status === 'DELIVERED') {

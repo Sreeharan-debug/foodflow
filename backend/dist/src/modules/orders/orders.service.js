@@ -16,19 +16,22 @@ const websocket_gateway_1 = require("../websocket/websocket.gateway");
 const client_1 = require("@prisma/client");
 const email_service_1 = require("../email/email.service");
 const payments_service_1 = require("../payments/payments.service");
+const invoice_service_1 = require("../payments/invoice.service");
 let OrdersService = class OrdersService {
     prisma;
     wsGateway;
     emailService;
     paymentsService;
-    constructor(prisma, wsGateway, emailService, paymentsService) {
+    invoiceService;
+    constructor(prisma, wsGateway, emailService, paymentsService, invoiceService) {
         this.prisma = prisma;
         this.wsGateway = wsGateway;
         this.emailService = emailService;
         this.paymentsService = paymentsService;
+        this.invoiceService = invoiceService;
     }
     async checkout(userId, checkoutDto) {
-        const { addressId, couponCode } = checkoutDto;
+        const { addressId, couponCode, paymentMethod } = checkoutDto;
         const cart = await this.prisma.cart.findUnique({
             where: { userId },
             include: {
@@ -123,7 +126,10 @@ let OrdersService = class OrdersService {
                 entityId: order.id,
             },
         });
-        const razorpayOrder = await this.paymentsService.createRazorpayOrder(order.id, userId);
+        let razorpayOrder = null;
+        if (paymentMethod !== 'COD') {
+            razorpayOrder = await this.paymentsService.createRazorpayOrder(order.id, userId);
+        }
         this.emailService.sendOrderConfirmationEmail(order.user.name, order.user.email, order.id, order.total.toString()).catch((err) => {
             console.error('[Email Error] checkout order confirmation email failed:', err);
         });
@@ -193,6 +199,7 @@ let OrdersService = class OrdersService {
                 user: true,
                 items: { include: { food: true } },
                 address: true,
+                payments: true,
             },
         });
         if (!order) {
@@ -201,11 +208,16 @@ let OrdersService = class OrdersService {
         if (restaurantId && order.restaurantId !== restaurantId) {
             throw new common_1.BadRequestException('You do not have permission to update this order');
         }
+        const isCod = !order.payments || order.payments.length === 0;
+        const updateData = { status: updateOrderStatusDto.status };
+        if (isCod && updateOrderStatusDto.status === client_1.OrderStatus.DELIVERED) {
+            updateData.paymentStatus = 'PAID';
+        }
         const updatedOrder = await this.prisma.order.update({
             where: { id: orderId },
-            data: { status: updateOrderStatusDto.status },
+            data: updateData,
             include: {
-                user: { select: { id: true, email: true, name: true } },
+                user: { select: { id: true, email: true, name: true, firstName: true } },
                 address: true,
                 items: { include: { food: true } },
             },
@@ -222,6 +234,31 @@ let OrdersService = class OrdersService {
         this.emailService.sendOrderStatusUpdateEmail(updatedOrder.user.name, updatedOrder.user.email, updatedOrder.id, updatedOrder.status).catch((err) => {
             console.error('[Email Error] status update email failed:', err);
         });
+        if (isCod && updateOrderStatusDto.status === client_1.OrderStatus.DELIVERED) {
+            try {
+                const generated = await this.invoiceService.generateInvoicePdf(updatedOrder, {
+                    paymentMethod: 'COD',
+                });
+                const pdfUrl = generated.pdfUrl;
+                const pdfBuffer = generated.pdfBuffer;
+                const invoiceNumber = `INV-${new Date().getFullYear()}-${updatedOrder.id.substring(0, 8).toUpperCase()}`;
+                await this.prisma.invoice.create({
+                    data: {
+                        invoiceNumber,
+                        orderId: updatedOrder.id,
+                        customerId: updatedOrder.userId,
+                        pdfUrl,
+                    },
+                });
+                const userFirstName = updatedOrder.user.firstName || updatedOrder.user.name.split(' ')[0] || 'Customer';
+                this.emailService
+                    .sendPaymentSuccessEmailWithAttachment(updatedOrder.user.email, userFirstName, 'COD-' + updatedOrder.id.substring(0, 8).toUpperCase(), updatedOrder.id, updatedOrder.total.toString(), `invoice-${updatedOrder.id}.pdf`, pdfBuffer)
+                    .catch((err) => console.error('[Email Error] COD invoice success email failed:', err));
+            }
+            catch (invoiceErr) {
+                console.error('COD Invoice generation/db save failed:', invoiceErr);
+            }
+        }
         if (updatedOrder.status === 'DELIVERED') {
             setTimeout(() => {
                 this.emailService.sendReviewRequestEmail(updatedOrder.user.name, updatedOrder.user.email, updatedOrder.id).catch((err) => {
@@ -238,6 +275,7 @@ exports.OrdersService = OrdersService = __decorate([
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         websocket_gateway_1.WebsocketGateway,
         email_service_1.EmailService,
-        payments_service_1.PaymentsService])
+        payments_service_1.PaymentsService,
+        invoice_service_1.InvoiceService])
 ], OrdersService);
 //# sourceMappingURL=orders.service.js.map

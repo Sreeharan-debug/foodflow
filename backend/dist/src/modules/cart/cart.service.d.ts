@@ -7,9 +7,9 @@ export declare class CartService {
         items: ({
             food: {
                 id: string;
+                name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                name: string;
                 description: string;
                 price: import("@prisma/client/runtime/library").Decimal;
                 imageUrl: string;
@@ -35,17 +35,17 @@ export declare class CartService {
         })[];
     } & {
         id: string;
-        userId: string;
         createdAt: Date;
         updatedAt: Date;
+        userId: string;
     }>;
     addItem(userId: string, addToCartDto: AddToCartDto): Promise<{
         items: ({
             food: {
                 id: string;
+                name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                name: string;
                 description: string;
                 price: import("@prisma/client/runtime/library").Decimal;
                 imageUrl: string;
@@ -71,17 +71,17 @@ export declare class CartService {
         })[];
     } & {
         id: string;
-        userId: string;
         createdAt: Date;
         updatedAt: Date;
+        userId: string;
     }>;
     updateItem(userId: string, cartItemId: string, updateCartItemDto: UpdateCartItemDto): Promise<{
         items: ({
             food: {
                 id: string;
+                name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                name: string;
                 description: string;
                 price: import("@prisma/client/runtime/library").Decimal;
                 imageUrl: string;
@@ -107,17 +107,17 @@ export declare class CartService {
         })[];
     } & {
         id: string;
-        userId: string;
         createdAt: Date;
         updatedAt: Date;
+        userId: string;
     }>;
     removeItem(userId: string, cartItemId: string): Promise<{
         items: ({
             food: {
                 id: string;
+                name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                name: string;
                 description: string;
                 price: import("@prisma/client/runtime/library").Decimal;
                 imageUrl: string;
@@ -143,17 +143,17 @@ export declare class CartService {
         })[];
     } & {
         id: string;
-        userId: string;
         createdAt: Date;
         updatedAt: Date;
+        userId: string;
     }>;
     clearCart(userId: string): Promise<{
         items: ({
             food: {
                 id: string;
+                name: string;
                 createdAt: Date;
                 updatedAt: Date;
-                name: string;
                 description: string;
                 price: import("@prisma/client/runtime/library").Decimal;
                 imageUrl: string;
@@ -179,8 +179,8 @@ export declare class CartService {
         })[];
     } & {
         id: string;
-        userId: string;
         createdAt: Date;
         updatedAt: Date;
+        userId: string;
     }>;
 }

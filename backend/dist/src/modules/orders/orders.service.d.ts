@@ -4,12 +4,14 @@ import { WebsocketGateway } from '../websocket/websocket.gateway';
 import { Prisma, Role } from '@prisma/client';
 import { EmailService } from '../email/email.service';
 import { PaymentsService } from '../payments/payments.service';
+import { InvoiceService } from '../payments/invoice.service';
 export declare class OrdersService {
     private prisma;
     private wsGateway;
     private emailService;
     private paymentsService;
-    constructor(prisma: PrismaService, wsGateway: WebsocketGateway, emailService: EmailService, paymentsService: PaymentsService);
+    private invoiceService;
+    constructor(prisma: PrismaService, wsGateway: WebsocketGateway, emailService: EmailService, paymentsService: PaymentsService, invoiceService: InvoiceService);
     checkout(userId: string, checkoutDto: CheckoutDto): Promise<{
         order: {
             user: {
@@ -81,7 +83,7 @@ export declare class OrdersService {
             amount: string | number;
             currency: string;
             receipt: string | undefined;
-        };
+        } | null;
     }>;
     findAll(userId: string, role: Role, restaurantId?: string): Promise<({
         address: {
@@ -213,6 +215,7 @@ export declare class OrdersService {
             id: string;
             email: string;
             name: string;
+            firstName: string | null;
         };
         address: {
             id: string;
